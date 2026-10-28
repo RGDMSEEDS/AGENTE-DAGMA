@@ -63,7 +63,7 @@ function dist(a,b){const d=[];for(let i=0;i<=a.length;i++)d[i]=[i];for(let j=0;j
  for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++){const c=a[i-1]===b[j-1]?0:1;d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c);
  if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])d[i][j]=Math.min(d[i][j],d[i-2][j-2]+1);}return d[a.length][b.length];}
 function tol(w){if(/^\d+$/.test(w)||w.length<=3)return 0;return w.length<=6?1:2;}
-function hasPhrase(tk,s,p){if((' '+s+' ').includes(' '+p+' '))return true;if(!p.includes(' '))return tk.some(t=>dist(t,p)<=Math.min(tol(t),tol(p)));return false;}
+function hasPhrase(tk,s,p){if((' '+s+' ').includes(' '+p+' '))return true;if(!p.includes(' '))return tk.some(t=>t[0]===p[0]&&dist(t,p)<=Math.min(tol(t),tol(p)));return false;}
 const CFG={
  stop:new Set("a o as os de da do das dos em no na nos nas pra pro para por com que qual quais me mim eu voce vc sobre regiao cultivar variedade material soja dagma plantar planto posso quero saber informacao info ai la e bora vamos vamo vai eae eai opa fala oi ola ei cara mano po blz beleza show massa top certo ok okay entao sim nao obrigado valeu vlw bom boa dia tarde noite favor pfv hmm aham quer".split(' ')),
  naoVazias:new Set(['sul','norte','oeste','leste','centro']),
@@ -450,10 +450,11 @@ function lancamentos(e,bt){let filt=null,label='';
  return {bubbles:['<div class="t">Lançamentos DAGMA'+btx+' por ano'+label+'</div><div class="k">'+anos.map(linha).join('<br>')+'</div><div class="info">O mais recente: '+byY[anos[0]].map(c=>c.nome).join(', ')+'.</div>']};}
 /* ===== PROCESSO (contexto + resposta) ===== */
 function smallTalk(e){const s=e.s;
- const anyEnt=e.cod||e.cidade||e.uf||e.macro||e.micro||e.biotech||e.comp||e.fert||e.attr||e.overview||e.macroMenu||e.regiaoMenu||recoIntent(s)||e.cultErro||e.zerar;
+ const anyEnt=e.cod||e.cidade||e.uf||e.macro||e.micro||e.biotech||e.comp||e.fert||e.attr||e.overview||e.macroMenu||e.regiaoMenu||recoIntent(s)||e.cultErro||e.zerar||e.ano||e.lancPlural||e.lanc||e.global||e.manejo||e.regWord||/lancad|lancament|cultivar|variedade|material/.test(s);
  if(anyEnt)return null;
  if(/\b(obrigad[oa]|valeu|vlw|agradec|brigad[oa]|muito bom|perfeito|show de bola)\b/.test(s))return {bubbles:['Por nada! Quando precisar, é só perguntar — cidade, estado, macro, micro ou cultivar.']};
  if(/\b(ajuda|socorro|como funciona|como usar|o que voce faz|o que vc faz|o que voce sabe|menu|comandos)\b/.test(s))return {bubbles:['Pode perguntar do seu jeito. Alguns exemplos:<br>• <b>o que plantar em Sorriso</b><br>• <b>7825 em Juara, alta fertilidade</b><br>• <b>cultivares no Maranhão</b> · <b>Macro 5</b> · <b>micro 301</b><br>• <b>qual a mais precoce em Rio Verde</b><br>• <b>cultivares Enlist</b> · <b>solo arenoso em Sapezal</b>'],buttons:[{label:'Ver portfólio',query:'portfolio'},{label:'Por macrorregião',query:'por macro'}]};
+ if(/\b(como vai|tudo bem|tudo bom|como esta|como voce esta)\b/.test(s))return {bubbles:['Tudo certo por aqui! Me diga a cidade, o estado, a macro ou a micro — e a cultivar, se tiver.']};
  if(/^(oi+|ola|ei|opa|eai|e ai|fala|bom dia|boa tarde|boa noite|hello|hey|salve|tudo bem|tudo bom|beleza|blz)( .*)?$/.test(s))return {bubbles:['Olá! Sou o <b>Agente DAGMA</b>. Me diga a cidade, o estado, a macro ou a micro — e a cultivar, se tiver.'],buttons:[{label:'Ver portfólio',query:'portfolio'},{label:'Por macrorregião',query:'por macro'},{label:'Por região',query:'por regiao'}]};
  return null;}
 function processCore(e){
@@ -587,15 +588,23 @@ function doNova(withToast){const snap=snapshot();chat.innerHTML='';ctx=blankCtx(
    clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.style.display='none',5000);}}
 document.getElementById('nova').onclick=()=>doNova(true);
 /* ===== Microfone (Web Speech API) ===== */
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition,micBtn=document.getElementById('mic'),PH=inp.placeholder;let recog=null,ouvindo=false;
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition,micBtn=document.getElementById('mic'),PH=inp.placeholder;let recog=null;
 function bestAlt(r){let best=r[0].transcript,sc=-9;for(let k=0;k<r.length;k++){const t=r[k].transcript,e=extrai(t);const v=(e.cod?3:0)+(e.cidade?2:0)+(e.uf?1:0)+(e.macro||e.micro?1:0)-(e.cultErro?2:0);if(v>sc){sc=v;best=t;}}return best;}
+let micOn=false,buf='',lastHeard=0,t0=0,sess=0,silTimer=null;const SIL=3000,NOSPEECH=8000,MAXT=60000;
+const MIC_ERR={'not-allowed':'Não tenho permissão para usar o microfone. Libere o microfone para este site nas configurações do navegador.','service-not-allowed':'O navegador não liberou o reconhecimento de voz. Tente no Chrome.','network':'Sem conexão para transcrever o áudio. Tente de novo ou digite.','audio-capture':'Não encontrei microfone neste aparelho.'};
+function micUI(on){micBtn.classList.toggle('on',on);inp.placeholder=on?'Ouvindo… toque no 🎤 de novo para enviar':PH;}
+function micFinish(send){micOn=false;clearTimeout(silTimer);try{recog&&recog.abort&&recog.abort();}catch(x){}micUI(false);const t=buf.trim();buf='';inp.value='';if(send&&t)handle(t,'🎤 '+t);}
+function armSil(){clearTimeout(silTimer);silTimer=setTimeout(()=>{if(micOn&&buf&&Date.now()-lastHeard>=SIL)micFinish(true);},SIL+60);}
+function micSession(){if(!micOn)return;sess++;recog=new SR();recog.lang='pt-BR';recog.interimResults=true;recog.maxAlternatives=3;recog.continuous=false;
+ recog.onresult=ev=>{let it='';for(let i=ev.resultIndex;i<ev.results.length;i++){const r=ev.results[i];if(r.isFinal)buf+=(buf?' ':'')+bestAlt(r).trim();else it+=r[0].transcript;}lastHeard=Date.now();inp.value=(buf+' '+it).trim();armSil();};
+ recog.onerror=ev=>{const m=MIC_ERR[ev.error];if(m){bubble('a',m);micFinish(false);}};
+ recog.onend=()=>{if(!micOn)return;const now=Date.now();
+   if(!buf&&now-t0>NOSPEECH){bubble('a','Não ouvi nada. Toque no 🎤 e fale de novo.');micFinish(false);return;}
+   if(buf&&now-lastHeard>=SIL){micFinish(true);return;}
+   if(now-t0>MAXT||sess>60){micFinish(true);return;}
+   setTimeout(micSession,60);};
+ try{recog.start();}catch(err){micFinish(false);bubble('a','Não consegui iniciar o microfone neste navegador.');}}
 if(!SR)micBtn.style.display='none';
-else micBtn.onclick=()=>{if(ouvindo){recog&&recog.stop();return;}
- recog=new SR();recog.lang='pt-BR';recog.interimResults=true;recog.maxAlternatives=3;recog.continuous=false;let fin='';
- recog.onstart=()=>{ouvindo=true;micBtn.classList.add('on');inp.value='';inp.placeholder='Ouvindo… fale a cultivar e a cidade';};
- recog.onresult=ev=>{let it='';for(let i=ev.resultIndex;i<ev.results.length;i++){const r=ev.results[i];if(r.isFinal)fin+=(fin?' ':'')+bestAlt(r);else it+=r[0].transcript;}inp.value=(fin+' '+it).trim();};
- recog.onerror=ev=>{const m={'not-allowed':'Não tenho permissão para usar o microfone. Libere o microfone no navegador — no link de teste do claude.ai ele pode ser bloqueado; na versão hospedada funciona.','service-not-allowed':'O navegador não liberou o reconhecimento de voz. Tente no Chrome.','no-speech':'Não ouvi nada. Toque no 🎤 e fale de novo.','network':'Sem conexão para transcrever o áudio. Tente de novo ou digite.','audio-capture':'Não encontrei microfone neste aparelho.'}[ev.error];if(m)bubble('a',m);};
- recog.onend=()=>{ouvindo=false;micBtn.classList.remove('on');inp.placeholder=PH;const t=(fin||inp.value).trim();inp.value='';if(t)handle(t,'🎤 '+t);};
- try{recog.start();}catch(err){bubble('a','Não consegui iniciar o microfone neste navegador.');}};
+else micBtn.onclick=()=>{if(micOn){micFinish(true);return;}micOn=true;buf='';t0=Date.now();lastHeard=0;sess=0;inp.value='';micUI(true);micSession();};
 welcome();
 </script></body></html>
