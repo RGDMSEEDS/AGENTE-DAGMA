@@ -598,46 +598,62 @@ function handle(text,disp){text=text.trim();if(!text)return;clearBtns();bubble('
    else{e=extrai(text);pend=null;}
  }else e=extrai(text);
  respond(process(e));}
-document.getElementById('send').onclick=()=>{handle(inp.value);inp.value='';};
-inp.addEventListener('keydown',ev=>{if(ev.key==='Enter'){handle(inp.value);inp.value='';}});
 document.getElementById('filtrox').onclick=()=>{limpaLocal();ctx.cond=null;updateFiltro();bubble('a','Filtro de local removido. Agora respondo sem local até você informar um novo.');};
 function welcome(){bubble('a','Olá! Sou o <b>Agente DAGMA</b>. Pode perguntar do seu jeito — ex.: “o que plantar em Sorriso”, “7825 em Juara MT, alta fertilidade”, “qual a mais precoce”, “cultivares Enlist”. Também entendo estado, macro e micro — ex.: “cultivares no Maranhão”, “Macro 5”, “micro 301”. Ou explore abaixo:');buttons([{label:'Ver portfólio',query:'portfolio'},{label:'Por macrorregião',query:'por macro'},{label:'Por região',query:'por regiao'}]);}
 function snapshot(){return {html:chat.innerHTML,ctx:Object.assign({},ctx)};}
 function restore(snap){chat.innerHTML=snap.html;ctx=Object.assign({},snap.ctx);updateFiltro();}
-function doNova(withToast){const snap=snapshot();chat.innerHTML='';ctx=blankCtx();pend=null;updateFiltro();welcome();
+function doNova(withToast){if(micOn){envioPend=false;const r=recog;recog=null;micOn=false;micUI(false);clearTimeout(micGuard);clearTimeout(envioFallback);try{r&&r.abort();}catch(x){}inp.value='';vozUsada=false;}const snap=snapshot();chat.innerHTML='';ctx=blankCtx();pend=null;updateFiltro();welcome();
  if(withToast){toast.innerHTML='Nova conversa iniciada <b id="undo">Desfazer</b>';toast.style.display='block';
    document.getElementById('undo').onclick=()=>{restore(snap);toast.style.display='none';};
    clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.style.display='none',5000);}}
 document.getElementById('nova').onclick=()=>doNova(true);
-/* ===== Microfone (Web Speech API) ===== */
+/* ===== Microfone (Web Speech API) — fala → caixa de texto; quem envia é sempre o usuário (➤) ===== */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition,micBtn=document.getElementById('mic'),PH=inp.placeholder;let recog=null;
+const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 function bestAlt(r){let best=r[0].transcript,sc=-9;for(let k=0;k<r.length;k++){const t=r[k].transcript,e=extrai(t);const v=(e.cod?3:0)+(e.cidade?2:0)+(e.uf?1:0)+(e.macro||e.micro?1:0)-(e.cultErro?2:0);if(v>sc){sc=v;best=t;}}return best;}
-let micOn=false,bufPrev='',bufCur='',lastHeard=0,t0=0,sess=0,silTimer=null;const SIL=3000,NOSPEECH=8000,MAXT=60000;
-const MIC_ERR={'not-allowed':'Não tenho permissão para usar o microfone. Libere o microfone para este site nas configurações do navegador.','service-not-allowed':'O navegador não liberou o reconhecimento de voz. Tente no Chrome.','network':'Sem conexão para transcrever o áudio. Tente de novo ou digite.','audio-capture':'Não encontrei microfone neste aparelho.'};
 const nz=x=>norm(x||'');
-function micText(){return (bufPrev+' '+bufCur).replace(/\s+/g,' ').trim();}
-function micUI(on){micBtn.classList.toggle('on',on);inp.placeholder=on?'Ouvindo… toque no 🎤 de novo para enviar':PH;}
-function micFinish(send){if(!micOn&&!send)return;micOn=false;clearTimeout(silTimer);try{recog&&recog.abort&&recog.abort();}catch(x){}micUI(false);const t=micText();bufPrev='';bufCur='';inp.value='';if(send&&t)handle(t,'🎤 '+t);}
-function armSil(){clearTimeout(silTimer);silTimer=setTimeout(()=>{if(micOn&&micText()&&Date.now()-lastHeard>=SIL)micFinish(true);},SIL+60);}
-/* junta os resultados da sessão; no Android o modo contínuo repete pedaços ("opa", "opa fale"...) → fica com o mais completo */
+/* Android no modo contínuo repete pedaços ("opa", "opa fale"...) → fica sempre com o mais completo */
 function joinFinals(list){const out=[];list.forEach(t=>{t=(t||'').trim();if(!t)return;const n=nz(t),L=out.length?nz(out[out.length-1]):'';
-  if(L&&n.startsWith(L))out[out.length-1]=t;else if(L&&L.startsWith(n))return;else if(L&&L===n)return;else out.push(t);});return out.join(' ');}
-function micSession(){if(!micOn)return;sess++;recog=new SR();recog.lang='pt-BR';recog.interimResults=true;recog.maxAlternatives=3;recog.continuous=true;
- recog.onresult=ev=>{const fin=[];let it='';for(let i=0;i<ev.results.length;i++){const r=ev.results[i];if(r.isFinal)fin.push(bestAlt(r));else it=r[0].transcript;}
-   bufCur=joinFinals(fin);const itn=nz(it),cn=nz(bufCur);let show=micText();if(it&&!(cn&&cn.endsWith(itn))&&!(itn&&itn.startsWith(cn)&&cn))show=(show+' '+it).trim();else if(it&&itn.startsWith(cn))show=(bufPrev+' '+it).trim();
-   lastHeard=Date.now();inp.value=show;armSil();};
- recog.onerror=ev=>{const m=MIC_ERR[ev.error];if(m){bubble('a',m);micFinish(false);}};
- recog.onend=()=>{if(!micOn)return;bufPrev=micText();bufCur='';const now=Date.now();
-   if(!bufPrev&&now-t0>NOSPEECH){bubble('a','Não ouvi nada. Toque no 🎤 e fale de novo.');micFinish(false);return;}
-   if(bufPrev&&now-lastHeard>=SIL){micFinish(true);return;}
-   if(now-t0>MAXT||sess>20){micFinish(true);return;}
-   setTimeout(micSession,60);};   /* só reabre se o próprio celular encerrar a escuta antes da hora */
- try{recog.start();}catch(err){micFinish(false);bubble('a','Não consegui iniciar o microfone neste navegador.');}}
-let guardT=null;
-if(!SR)micBtn.style.display='none';
-else micBtn.onclick=()=>{if(micOn){micFinish(true);return;}micOn=true;bufPrev='';bufCur='';t0=Date.now();lastHeard=0;sess=0;inp.value='';micUI(true);micSession();
- clearTimeout(guardT);const my=t0;guardT=setTimeout(function chk(){if(!micOn||t0!==my)return;const now=Date.now();
-   if(!micText()&&now-t0>=NOSPEECH){bubble('a','Não ouvi nada. Toque no 🎤 e fale de novo.');micFinish(false);return;}
-   if(now-t0>=MAXT){micFinish(true);return;}guardT=setTimeout(chk,500);},500);};
+  if(L&&n.startsWith(L))out[out.length-1]=t;else if(L&&(L.startsWith(n)||L===n))return;else out.push(t);});return out.join(' ');}
+function juntaFala(fin,it){fin=(fin||'').trim();it=(it||'').trim();if(!it)return fin;if(!fin)return it;const f=nz(fin),i=nz(it);
+  if(i.startsWith(f))return it;if(f.endsWith(i)||f.startsWith(i))return fin;return fin+' '+it;}
+let micOn=false,micBase='',micFin='',micIt='',vozUsada=false,envioPend=false,micT0=0,micGuard=null,envioFallback=null,iosTeclado=false,dicaMostrada=false;
+const MAXT=window.__MAXT||60000;
+function micUI(on){micBtn.classList.toggle('on',on);inp.placeholder=on?'Ouvindo… ➤ envia · 🎤 pausa':PH;}
+function micTexto(comInterim){const fala=comInterim?juntaFala(micFin,micIt):micFin;return (micBase+' '+fala).replace(/\s+/g,' ').trim();}
+function dica(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(window.__dicaT);window.__dicaT=setTimeout(()=>{t.style.display='none';},3500);}
+function iosDica(){iosTeclado=true;bubble('a','No iPhone, use o <b>🎤 do teclado</b>: toque na caixa de texto e depois no microfone do teclado para ditar. Depois toque em ➤ para enviar.<br><span style="color:#667781;font-size:12px">Para usar o 🎤 do Agente, ative Ajustes → Geral → Teclado → Ativar Ditado.</span>');try{inp.focus();}catch(x){}}
+const MIC_ERR={'not-allowed':'Não tenho permissão para usar o microfone. Libere o microfone para este site nas configurações do navegador.',
+ 'service-not-allowed':'O navegador não liberou o reconhecimento de voz. No Android use o Chrome; no computador, Chrome ou Edge.',
+ 'network':'Sem conexão para transcrever o áudio. Tente de novo ou digite.','audio-capture':'Não encontrei microfone neste aparelho.'};
+function micEncerra(){ // chamado quando a escuta termina (sozinha, por pausa, ou por envio)
+ clearTimeout(micGuard);clearTimeout(envioFallback);if(!micOn)return;micOn=false;micUI(false);
+ const t=micTexto(true);inp.value=t;micBase='';micFin='';micIt='';recog=null;
+ if(envioPend){envioPend=false;enviar();return;}
+ if(t&&!dicaMostrada){dicaMostrada=true;dica('Confira o texto e toque em ➤ para enviar — ou no 🎤 para continuar falando.');}}
+function micInicia(){
+ if(iosTeclado||(!SR&&IOS)){iosDica();return;}
+ if(!SR)return;
+ micBase=inp.value.trim();micFin='';micIt='';envioPend=false;
+ const r=new SR();recog=r;r.lang='pt-BR';r.interimResults=true;r.maxAlternatives=3;r.continuous=true;
+ r.onresult=ev=>{if(recog!==r)return;const fin=[];let it='';for(let i=0;i<ev.results.length;i++){const x=ev.results[i];if(x.isFinal)fin.push(bestAlt(x));else it=x[0].transcript;}
+   micFin=joinFinals(fin);micIt=it;if(micFin||micIt)vozUsada=true;inp.value=micTexto(true);};
+ r.onerror=ev=>{if(recog!==r)return;const e=ev.error;
+   if(IOS&&(e==='not-allowed'||e==='service-not-allowed')){micOn=false;micUI(false);recog=null;try{r.abort();}catch(x){}iosDica();return;}
+   const m=MIC_ERR[e];if(m){bubble('a',m);envioPend=false;micEncerra();}};
+ r.onend=()=>{if(recog!==r)return;const vazio=!micTexto(true);micEncerra();if(vazio&&!inp.value)bubble('a','Não ouvi nada. Toque no 🎤 e fale de novo.');};
+ micOn=true;micT0=Date.now();micUI(true);
+ try{r.start();}catch(err){micOn=false;micUI(false);recog=null;if(IOS)iosDica();else bubble('a','Não consegui iniciar o microfone neste navegador.');return;}
+ clearTimeout(micGuard);micGuard=setTimeout(()=>{if(micOn&&recog===r){try{r.stop();}catch(x){}setTimeout(()=>{if(recog===r)micEncerra();},1500);}},MAXT);}
+function micPara(){if(!micOn||!recog)return;const r=recog;try{r.stop();}catch(x){}
+ setTimeout(()=>{if(micOn&&recog===r)micEncerra();},1500);} // se o navegador não avisar o fim, encerra assim mesmo
+function enviar(){
+ if(micOn){envioPend=true;micPara();clearTimeout(envioFallback);envioFallback=setTimeout(()=>{if(envioPend)micEncerra();},1600);return;}
+ const t=inp.value.trim();if(!t)return;const disp=vozUsada?'🎤 '+t:t;vozUsada=false;inp.value='';handle(t,disp);}
+if(!SR&&!IOS)micBtn.style.display='none';
+micBtn.onclick=()=>{if(micOn){micPara();return;}micInicia();};
+document.getElementById('send').onclick=enviar;
+inp.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();enviar();}});
+inp.addEventListener('input',()=>{if(!micOn&&!inp.value.trim())vozUsada=false;});
 welcome();
 </script></body></html>
