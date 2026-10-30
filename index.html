@@ -56,7 +56,7 @@ body{background:#d1d7db;display:flex;justify-content:center}
 <script>
 const B=window.BASE_DAGMA, CULTS=B.cultivares, byCode={};
 CULTS.forEach(c=>byCode[c.codigo]=c);
-function norm(s){return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/(\d)\s+m\b/g,'$1m').replace(/[-().,/?!;:]/g,' ').replace(/\s+/g,' ').trim();}
+function norm(s){return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/(\d)\s+m\b/g,'$1m').replace(/[-().,/?!;:'’‘`´]/g,' ').replace(/\s+/g,' ').trim().replace(/\bd oeste\b/g,'do oeste');}
 function nuc(d){let n=String(d).replace(/\s*\(?(irrigado|sequeiro)\)?\s*$/i,'').trim();if(/^(irrigado|sequeiro)$/i.test(n)||/^df$/i.test(n)||n==='')return '';return norm(n);}
 function classe(n){return {1:'Baixa',2:'Média',3:'Média',4:'Alta',5:'Alta'}[+n];}
 function dist(a,b){const d=[];for(let i=0;i<=a.length;i++)d[i]=[i];for(let j=0;j<=b.length;j++)d[0][j]=j;
@@ -96,9 +96,10 @@ function fuzzyCity(tk){let best=null;
    const span=parts.join(' ');if(span.length<5||(len===1&&span.length<6))continue;
    if(len===1&&(CFG.ufExata.has(span)||BLOCKCITY.has(span)))continue;
    const tl=span.length<=7?1:2;
-   for(const nm of POSCITIES){if(nm[0]!==span[0]||Math.abs(nm.length-span.length)>tl)continue;const d=dist(span,nm);if(d>0&&d<=tl&&(!best||d<best.d||(d===best.d&&len>best.len)))best={name:nm,d,len,span};}}
+   for(const nm of POSCITIES){if(nm[0]!==span[0]||Math.abs(nm.length-span.length)>tl)continue;const d=dist(span,nm);if(d>0&&d<=tl){
+     if(!best||d<best.d||(d===best.d&&len>best.len))best={name:nm,d,len,span,ties:[nm]};else if(d===best.d&&len===best.len&&best.ties.indexOf(nm)<0)best.ties.push(nm);}}}
  return best;}
-const BLOCKCITY=new Set(['serra','areia','planalto','irrigado','sequeiro','solo','misto','barro','pontal','batavo','arenito','triangulo','transicao','araguaia','paranaiba','noroeste','sudoeste','macro','micro','rec','regiao','macros']);
+const BLOCKCITY=new Set(['serra','areia','irrigado','sequeiro','solo','misto','barro','pontal','batavo','arenito','triangulo','transicao','araguaia','paranaiba','noroeste','sudoeste','macro','micro','rec','regiao','macros']);
 function macOf(r){return (B.recMac&&B.recMac[r.uf+'|'+r.rec])||('M'+String(r.rec)[0]);}
 function ufNome(u){return (B.ufNomes&&B.ufNomes[u])||u;}
 const UF_NO=new Set(['MT','MS','MA','TO','PA','PI','DF','AC','AP','AM','CE','ES','PR','RJ','RN','RS']),UF_NA=new Set(['BA','PB']);
@@ -153,17 +154,20 @@ function recoIntent(s){return RECO.some(k=>s.includes(k))||/recomend|\bindic|sug
 const NUMW={zero:0,um:1,uma:1,dois:2,duas:2,tres:3,quatro:4,cinco:5,seis:6,meia:6,sete:7,oito:8,nove:9,dez:10,onze:11,doze:12,treze:13,quatorze:14,catorze:14,quinze:15,dezesseis:16,dezasseis:16,dezessete:17,dezoito:18,dezenove:19,vinte:20,trinta:30,quarenta:40,cinquenta:50,sessenta:60,setenta:70,oitenta:80,noventa:90,cem:100,cento:100,duzentos:200,trezentos:300,quatrocentos:400,quinhentos:500,seiscentos:600,setecentos:700,oitocentos:800,novecentos:900,mil:1000};
 const NUM_AMBIG=new Set(['um','uma','meia']);
 const NUM_TRIG=new Set(['nivel','fertilidade','solo','ambiente','macro','micro','rec','m','microrregiao','microregiao','macrorregiao','macroregiao']);
-const FALA_BIO=[[/\bconqu?ist[ao]\b|\bconkist[ao]\b|\bconquest[ao]\b|\bconkesta\b|\bconcesta\b/g,'conkesta'],[/\ben ?list[ie]?\b|\benliste\b/g,'enlist'],
+const FALA_BIO=[[/\bconqu?isto\b|\bconqista\b|\bconkist[ao]\b|\bconquest[ao]\b|\bconkesta\b|\bconcesta\b/g,'conkesta'],[/\ben ?list[ie]?\b|\benliste\b/g,'enlist'],
  [/\bi ?dois ?(x|xis)\b|\bi ?2 ?x\b|\bai ?tu ?ex\b|\bintacta (dois|2) ?(xtend|extend|x|xis)?\b/g,'i2x'],[/\b(i|ai) pro\b|\bipiro\b/g,'ipro'],
  [/\b(rr|erre erre) ?(dois|2) ?pro\b/g,'rr2 pro'],[/\bextend\b|\bxtende\b/g,'xtend']];
 function normFala(s){
+ s=s.replace(/(\S+ )?\bconquista\b( \S+)?/g,(m,pre,post)=>{const p=(pre||'').trim(),q=(post||'').trim();
+   if(['em','pra','para','de','na','no','cidade','municipio','ate','perto'].indexOf(p)>=0||['mg','minas','d','do','dO'].indexOf(q)>=0)return m;return (pre||'')+'conkesta'+(post||'');});
  FALA_BIO.forEach(([re,rp])=>{s=s.replace(re,rp);});
  const tk=s.split(' ').filter(Boolean),isD=x=>/^\d+$/.test(x||'');
  // 1) palavras numéricas → grupos (ex.: "vinte e um" = 21; "sete" "meia" = grupos separados)
  const items=[];let cur=null;const close=()=>{if(cur){items.push(cur);cur=null;}};
+ const cityAt=i=>{for(let L=2;L<=5&&i+L<=tk.length;L++){if(muniByName[tk.slice(i,i+L).join(' ')])return true;}return false;};
  for(let i=0;i<tk.length;i++){const w=tk[i];
-   if(w==='e'&&cur&&(tk[i+1] in NUMW)){cur.words.push(w);continue;}
-   if(w in NUMW){const v=NUMW[w];
+   if(w==='e'&&cur&&(tk[i+1] in NUMW)&&!cityAt(i+1)){cur.words.push(w);continue;}
+   if((w in NUMW)&&!cityAt(i)){const v=NUMW[w];
      if(!cur){cur={t:'n',v:w==='mil'?1000:v,words:[w]};continue;}
      if(w==='mil'){cur.v*=1000;cur.words.push(w);continue;}
      const rem=cur.v%1000;let join;
@@ -206,17 +210,25 @@ function extrai(text){const s=preT(normFala(norm(text))),tk=s.split(' ').filter(
  const nomes=Object.keys(CFG.ufNome).sort((a,b)=>b.length-a.length);
  let ufNm=null;for(const nm of nomes)if((' '+s+' ').includes(' '+nm+' ')){e.uf=CFG.ufNome[nm];ufNm=nm;break;}
  if(!e.uf){const sig=tk.find(t=>CFG.ufExata.has(t)||CFG.ufOutras.has(t));if(sig)e.uf=sig.toUpperCase();}
+ if(!e.uf){const pm=s.match(/\b(no|do|em|ao|pro|pelo|estado do|estado de|sul do|norte do) para\b/);if(pm){e.uf='PA';ufNm='para';}}
  if(!e.uf){for(const t of tk){if(t.length<6||CITYWORDS.has(t)||CFG.stop.has(t))continue;for(const nm of CFG.ufFuzzy){const d=dist(t,nm);if(d>0&&d<=tol(t)){e.uf=CFG.ufNome[nm];e.ufFuzzy=t;ufNm=t;break;}}if(e.uf)break;}}
+ if(ufNm){const cf=findCity(tk);if(cf&&cf.name!==ufNm&&(' '+cf.name+' ').includes(' '+ufNm+' ')){e.uf=null;ufNm=null;e.ufFuzzy=null;
+   const sig=tk.find(t=>(CFG.ufExata.has(t)||CFG.ufOutras.has(t))&&!(' '+cf.name+' ').includes(' '+t+' '));if(sig)e.uf=sig.toUpperCase();}}
  e.sReg=ufNm?(' '+s+' ').replace(' '+ufNm+' ',' ').trim():s;e.tkReg=e.sReg.split(' ').filter(Boolean);
  const mm=s.match(/\bmacro\s*(?:regiao\s*)?([1-5])\b|\bmacrorregiao\s*([1-5])\b|\bmacroregiao\s*([1-5])\b|\bm([1-5])\b/);if(mm)e.macro='M'+(mm[1]||mm[2]||mm[3]||mm[4]);
  const mi=s.match(/\b(?:micro|microrregiao|microregiao|rec|m)\s*(\d{3})\b/);
  if(mi&&RECSET.has(mi[1]))e.micro=mi[1];else{const b3=tk.find(t=>/^\d{3}$/.test(t)&&RECSET.has(t));if(b3)e.micro=b3;}
  e.macroMenu=!e.macro&&/\b(macros|macrorregioes|macroregioes|por macro|por macrorregiao)\b/.test(s);
  e.cidade=findCity(e.tkReg);
+ if(!e.cidade&&e.uf){for(const t of e.tkReg){if(BLOCKCITY.has(t)&&muniByName[t]){const f=muniByName[t].filter(r=>r.uf===e.uf&&r.rec);if(f.length){e.cidade={name:t,recs:f,longer:[]};break;}}}}
+ if(!e.cidade&&!e.uf){if(/\bpontal\b/.test(s))e.colisao='pontal';else if(/\bparanaiba\b/.test(s)&&!/\balto paranaiba\b/.test(s))e.colisao='paranaiba';}
  if(!e.cidade||!e.cidade.recs.some(r=>r.rec&&POS_UF.has(r.uf))){const fz=fuzzyCity(e.tkReg);
-   if(fz&&(!e.cidade||fz.len>=e.cidade.name.split(' ').length)){e.cidade={name:fz.name,recs:muniByName[fz.name],longer:[]};e.cityFuzzy=fz.span;}}
- const sF=s.replace(/\bmacro\s*(?:regiao\s*)?[1-5]\b|\bmacror?regiao\s*[1-5]\b|\bm[1-5]\b/g,' ').replace(/\s+/g,' ').trim();
- e.fert=parseSoil(s)||parseFert(sF,sF.split(' ').filter(Boolean));
+   if(fz&&(!e.cidade||fz.len>=e.cidade.name.split(' ').length)){e.cidade={name:fz.name,recs:muniByName[fz.name],longer:[]};e.cityFuzzy=fz.span;
+     if(fz.ties.length>1){e.cityTie=fz.ties.flatMap(n=>muniByName[n].filter(r=>r.rec&&POS_UF.has(r.uf)));}}}
+ let sCity=s;if(e.cidade){sCity=(' '+s+' ').replace(' '+e.cidade.name+' ',' ');if(e.cityFuzzy)sCity=sCity.replace(' '+e.cityFuzzy+' ',' ');sCity=sCity.trim();}
+ sCity=sCity.replace(/\balto (paranaiba|araguaia|garcas|taquari|boa vista|paraiso|alegre|horizonte|rio doce|jequitiba|caparao|porto)\b/g,' ');
+ const sF=sCity.replace(/\bmacro\s*(?:regiao\s*)?[1-5]\b|\bmacror?regiao\s*[1-5]\b|\bm[1-5]\b/g,' ').replace(/\s+/g,' ').trim();
+ e.fert=parseSoil(sCity)||parseFert(sF,sF.split(' ').filter(Boolean));
  for(const mj in CFG.manejo)for(const al of CFG.manejo[mj])if(hasPhrase(tk,s,al)){e.manejo=mj;break;}
  e.comp=detectComp(s);
  {const ya=s.match(/\b(20\d\d)\b/);if(ya)e.ano=+ya[1];else{const sf=s.match(/\bsafra (\d{2}) (\d{2})\b/);if(sf)e.ano=2000+(+sf[1]);}}
@@ -229,12 +241,13 @@ function extrai(text){const s=preT(normFala(norm(text))),tk=s.split(' ').filter(
  for(const at in CFG.atributo)for(const al of CFG.atributo[at])if(hasPhrase(tk,s,al)){e.attr=at;break;}
  e.manter=CFG.manterLocal.some(p=>(' '+s+' ').includes(' '+p+' '));
  e.zerar=CFG.zerar.some(p=>s.includes(p));
+ e.refCult=!e.cod&&(/\b(essa|esta|dessa|desta|nessa|esse|este|desse|deste)\s+(cultivar|variedade|material|semente|opcao|indicacao)\b/.test(s)||/\b(sobre ela|dela|e ela|fale mais|fala mais|falar mais|me conta mais|conta mais|conte mais|mais detalhes|mais detalhe|detalhes|detalhar|mais sobre|saber mais|mais informacoes|mais informacao|a mesma)\b/.test(s)||(/\b(primeira|segunda|terceira|ultima)\b/.test(s)&&!/\b20\d\d\b|safra/.test(s)));
  e.outroLocal=/\b(outra localidade|outras localidades|outra cidade|outras cidades|outro lugar|outros lugares|outro local|outros locais|outro estado|outros estados|outra regiao|outras regioes|outro municipio|outra area|qualquer lugar|qualquer regiao|qualquer cidade|qualquer estado|em outro|em outra|fora daqui|outra praca)\b/.test(s);
  e.regWord=hasRegionWord(e.sReg);
  return e;}
 
 /* ===== Contexto ===== */
-function blankCtx(){return {cod:null,muni:null,uf:null,cond:null,rec:null,manejo:null,atributo:null,lastWasList:false,scope:null};}
+function blankCtx(){return {cod:null,muni:null,uf:null,cond:null,rec:null,manejo:null,atributo:null,lastWasList:false,scope:null,ultimos:[]};}
 let ctx=blankCtx();
 function limpaLocal(){ctx.muni=null;ctx.uf=null;ctx.cond=null;ctx.rec=null;ctx.manejo=null;ctx.scope=null;}
 
@@ -250,7 +263,9 @@ function locFromMuni(muni,e){
    if(ns.length===1)cond=urRows[0].detalhe;
    else{const reach=ns.filter(n=>REACH.has(muni.uf+'|'+muni.rec+'|'+n));if(reach.length===1)cond=urRows.find(r=>nuc(r.detalhe)===reach[0]).detalhe;else return{ask:askRegion(muni,urRows,e)};}}
  return{muni,cond};}
-function resolveCity(e){ // só quando e.cidade existe
+function resolveCity(e){
+ if(e.cityTie&&e.cityTie.length>1&&!e.uf){const t=e.cityTie;e.cityTie=null;return{ask:askCity(t,e)};}
+ if(e.cityTie&&e.uf){const f=e.cityTie.filter(r=>r.uf===e.uf);e.cityTie=null;if(f.length===1)e.cidade={name:norm(f[0].m),recs:f,longer:[]};else if(f.length>1)return{ask:askCity(f,e)};} // só quando e.cidade existe
  let recs=e.cidade.recs;
  if(e.uf){const f=recs.filter(r=>r.uf===e.uf);recs=f.length?f:null;}
  if(!recs)return null; // cidade não bate com a UF declarada -> ignora
@@ -357,6 +372,7 @@ function ranking(comp,muni,cond,bt,filt,flabel){const crit=comp.crit;
  const dirtxt=crit==='ano'?(comp.dir==='asc'?'mais antigas':'mais recentes'):crit==='cisto'?'mais resistentes a cisto':((comp.dir==='asc')?('menor '+nomeC):('maior '+nomeC));
  // agrupar por vtxt (empate)
  const grp=[];const gi={};items.forEach(it=>{if(gi[it.vtxt]===undefined){gi[it.vtxt]=grp.length;grp.push({vtxt:it.vtxt,nomes:[]});}grp[gi[it.vtxt]].nomes.push(it.c.nome.replace('DAGMA ',''));});
+ ctx.topoRank=grp.length?items.filter(it=>it.vtxt===grp[0].vtxt).map(it=>it.c.codigo):null;
  const localTxt=filt?(' em '+flabel):muni?(' em <b>'+(muni.m?muni.m+'/'+muni.uf+' — ':'')+(cond||muni.uf)+'</b>'):' no portfólio';
  const linhas=grp.map(g=>'<b>'+g.vtxt+':</b> '+g.nomes.join(', ')).join('<br>');
  return {bubbles:['<div class="t">Ranking · '+dirtxt+localTxt.replace(/<\/?b>/g,'')+'</div><div class="k">'+linhas+'</div><div class="info">Digite o número de uma cultivar pra ver o detalhe.</div>']};}
@@ -467,7 +483,7 @@ function portfolioCrit(fert,bt){
    buttons:ufs.map(u=>({label:u,query:qf+qb+' '+u.toLowerCase()}))};}
 /* ===== PROCESSO (contexto + resposta) ===== */
 function smallTalk(e){const s=e.s;
- const anyEnt=e.cod||e.cidade||e.uf||e.macro||e.micro||e.biotech||e.comp||e.fert||e.attr||e.overview||e.macroMenu||e.regiaoMenu||recoIntent(s)||e.cultErro||e.zerar||e.ano||e.lancPlural||e.lanc||e.global||e.manejo||e.regWord||e.outroLocal||/lancad|lancament|cultivar|variedade|material/.test(s);
+ const anyEnt=e.cod||e.cidade||e.uf||e.macro||e.micro||e.biotech||e.comp||e.fert||e.attr||e.overview||e.macroMenu||e.regiaoMenu||recoIntent(s)||e.cultErro||e.zerar||e.ano||e.lancPlural||e.lanc||e.global||e.manejo||e.regWord||e.outroLocal||e.refCult||/lancad|lancament|cultivar|variedade|material/.test(s);
  if(anyEnt)return null;
  if(/\b(obrigad[oa]|valeu|vlw|agradec|brigad[oa]|muito bom|perfeito|show de bola)\b/.test(s))return {bubbles:['Por nada! Quando precisar, é só perguntar — cidade, estado, macro, micro ou cultivar.']};
  if(/\b(ajuda|socorro|como funciona|como usar|o que voce faz|o que vc faz|o que voce sabe|menu|comandos)\b/.test(s))return {bubbles:['Pode perguntar do seu jeito. Alguns exemplos:<br>• <b>o que plantar em Sorriso</b><br>• <b>7825 em Juara, alta fertilidade</b><br>• <b>cultivares no Maranhão</b> · <b>Macro 5</b> · <b>micro 301</b><br>• <b>qual a mais precoce em Rio Verde</b><br>• <b>cultivares Enlist</b> · <b>solo arenoso em Sapezal</b>'],buttons:[{label:'Ver portfólio',query:'portfolio'},{label:'Por macrorregião',query:'por macro'}]};
@@ -481,10 +497,24 @@ function processCore(e){
    const drill=ctx.lastWasList&&ctx.muni?{muni:ctx.muni,cond:ctx.cond}:null;
    return{bubbles:['Não encontrei a '+e.cultErro.val+'. Você quis dizer '+su.join(' ou ')+'?'],buttons:su.map(c=>({label:byCode[c].nome,set:'confirmcod',val:c})),pend:{type:'confirm',cod:su.length===1?su[0]:null,sug:su,e,drill}};}
  const wasList=ctx.lastWasList;ctx.lastWasList=false;
+ const topoPrev=ctx.topoRank;ctx.topoRank=null;
  const novoLocal=!!(e.cidade||e.uf||e.regWord||e.micro||e.macro);
  const prev={muni:ctx.muni,cond:ctx.cond,scope:ctx.scope};
  const wantReco=recoIntent(e.s);
  if(!e.cod&&(wantReco||(e.fert&&e.fert.tipo==='solo')||(e.fert&&!e.cod)))ctx.cod=null;
+ if(e.refCult&&!e.cod&&!e.cidade&&!e.uf&&!e.macro&&!e.micro&&!e.outroLocal){const L=ctx.ultimos||[];let alvo=null;
+   if(/\bprimeira\b/.test(e.s))alvo=L[0];else if(/\bsegunda\b/.test(e.s))alvo=L[1];else if(/\bterceira\b/.test(e.s))alvo=L[2];else if(/\bultima\b/.test(e.s))alvo=L[L.length-1];
+   else if(L.length===1)alvo=L[0];else if(topoPrev&&topoPrev.length===1)alvo=topoPrev[0];else if(!L.length&&ctx.cod)alvo=ctx.cod;
+   if(!alvo&&topoPrev&&topoPrev.length>1){ctx.lastWasList=true;return {bubbles:['Empatadas em primeiro lugar. De qual delas?'],buttons:topoPrev.map(c=>({label:byCode[c].nome.replace('DAGMA ',''),query:c}))};}
+   if(!alvo&&L.length>1){ctx.lastWasList=true;return {bubbles:['De qual delas? Toque na cultivar:'],buttons:L.slice(0,12).map(c=>({label:byCode[c].nome.replace('DAGMA ',''),query:c}))};}
+   if(!alvo)return {bubbles:['Qual cultivar? Me diga o número (ex.: 7825).']};
+   ctx.cod=alvo;
+   if(ctx.muni&&ctx.cond){const pn=nuc(ctx.cond),kids=fineKids(ctx.muni.uf,pn);
+     if(byCode[alvo].posicionamento.some(r=>r.uf===ctx.muni.uf&&(nuc(r.detalhe)===pn||kids.indexOf(nuc(r.detalhe))>=0))){const fa=fineAsk(alvo,ctx.muni,ctx.cond,e);if(fa)return fa;const det=renderDetail(alvo,ctx.muni,ctx.cond,e.attr||null,e.fert);if(det)return det;}}
+   if(ctx.scope&&byCode[alvo].posicionamento.some(scopeFilt(ctx.scope)))return scopeCultivar(alvo,ctx.scope,e.attr||null,e.fert,e.manejo);
+   return resumoCultivar(alvo);}
+ if(e.colisao){const pc=(e.cod?e.cod+' ':'');const o={pontal:[['Cidade de Pontal (SP)','pontal sp'],['Região MG Pontal','mg pontal']],paranaiba:[['Cidade de Paranaíba (MS)','paranaiba ms'],['Região Alto Paranaíba (MG)','mg alto paranaiba']]}[e.colisao];
+   return {bubbles:['“'+(e.colisao==='pontal'?'Pontal':'Paranaíba')+'” pode ser a cidade ou a região. Qual você quer?'],buttons:o.map(([l,q])=>({label:l,query:(pc+q).trim()}))};}
  if(e.biotech==='INTACTA'&&!e.cod)return askBiotech(e);
  const bt=(e.biotech&&e.biotech!=='INTACTA')?e.biotech:null;
  if(e.lanc&&bt&&byCode[e.cod].biotecnologia_sigla!==bt){const l=CULTS.filter(c=>c.biotecnologia_sigla===bt);
@@ -564,9 +594,11 @@ function processCore(e){
  if(!ctx.cod&&ctx.muni&&ctx.cond){ctx.lastWasList=true;return listaCultivares(ctx.muni,ctx.cond,e.fert);}
  if(!ctx.cod&&ctx.scope){ctx.lastWasList=true;return listaScope(ctx.scope,e.fert,null);}
  if(ctx.cod)return cultivarTodasRegioes(ctx.cod,null);
+ if(e.fert)return portfolioCrit(e.fert,bt);
  return {bubbles:['Me diz a <b>cidade</b>, o <b>estado</b>, a <b>macro</b> ou a <b>micro</b> (e a cultivar, se tiver). Ex.: “o que plantar em Sorriso”, “cultivares no Maranhão”, “Macro 5”, “7825 em Juara”.']};
 }
-function process(e){const r=processCore(e);const notas=[];if(e.ufFuzzy)notas.push('“'+e.ufFuzzy+'” como '+ufNome(e.uf));if(e.cityFuzzy&&e.cidade&&!r.pend)notas.push('“'+e.cityFuzzy+'” como '+((e.cidade.recs[0]||{}).m||cap(e.cidade.name)));
+function process(e){const r=processCore(e);
+ if(r&&r.bubbles){const txt=(r.bubbles.join(' ')+' '+(r.buttons||[]).map(b=>(b.label||'')+' '+(b.query||'')).join(' ')).replace(/<[^>]+>/g,' ');const cs=[...new Set((txt.match(/\b[678]\d{3}\b/g)||[]).filter(c=>byCode[c]))];if(cs.length)ctx.ultimos=cs;}const notas=[];if(e.ufFuzzy)notas.push('“'+e.ufFuzzy+'” como '+ufNome(e.uf));if(e.cityFuzzy&&e.cidade&&!r.pend)notas.push('“'+e.cityFuzzy+'” como '+((e.cidade.recs[0]||{}).m||cap(e.cidade.name)));
  if(r&&notas.length&&r.bubbles&&r.bubbles.length)r.bubbles[0]='<div class="loc">entendi '+notas.join(' · ')+'</div>'+r.bubbles[0];return r;}
 
 function confirmCod(cod,pd){
