@@ -39,6 +39,8 @@ body{background:#d1d7db;display:flex;justify-content:center}
 .bar .mic.on{background:#d93025;border-color:#d93025;color:#fff;animation:pulse 1.1s infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(217,48,37,.5)}70%{box-shadow:0 0 0 10px rgba(217,48,37,0)}100%{box-shadow:0 0 0 0 rgba(217,48,37,0)}}
 .day{text-align:center;margin:6px 0 10px}.day span{background:#E6F0DA;color:#4a5a3a;font-size:11px;padding:4px 10px;border-radius:7px}
+.jp{display:inline-block;min-width:62px;text-align:center;padding:1px 7px;border-radius:10px;font-size:11.5px;font-weight:700;margin:1px 2px}
+.warn{background:#FFF4E5;border-left:3px solid #E59400;padding:6px 8px;border-radius:4px;margin:2px 0 6px;color:#6b4a00}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:76px;background:#0A3D18;color:#fff;font-size:13px;padding:9px 14px;border-radius:22px;box-shadow:0 4px 14px rgba(0,0,0,.3);display:none;z-index:9}
 .toast b{color:#9ACA3C;cursor:pointer;margin-left:8px}
 </style></head><body>
@@ -52,7 +54,7 @@ body{background:#d1d7db;display:flex;justify-content:center}
    <button id="mic" class="mic" title="Falar" aria-label="Falar">&#127908;</button><button id="send">&#10148;</button></div>
 </div>
 <div class="toast" id="toast"></div>
-<script src="base_dagma.js?v=202610282038"></script>
+<script src="base_dagma.js?v=202611120242"></script>
 <script>
 const B=window.BASE_DAGMA, CULTS=B.cultivares, byCode={};
 CULTS.forEach(c=>byCode[c.codigo]=c);
@@ -63,7 +65,7 @@ function dist(a,b){const d=[];for(let i=0;i<=a.length;i++)d[i]=[i];for(let j=0;j
  for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++){const c=a[i-1]===b[j-1]?0:1;d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c);
  if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])d[i][j]=Math.min(d[i][j],d[i-2][j-2]+1);}return d[a.length][b.length];}
 function tol(w){if(/^\d+$/.test(w)||w.length<=3)return 0;return w.length<=6?1:2;}
-function hasPhrase(tk,s,p){if((' '+s+' ').includes(' '+p+' '))return true;if(!p.includes(' '))return tk.some(t=>t[0]===p[0]&&dist(t,p)<=Math.min(tol(t),tol(p)));return false;}
+function hasPhrase(tk,s,p){if((' '+s+' ').includes(' '+p+' '))return true;if(!p.includes(' ')&&p.length>4)return tk.some(t=>t[0]===p[0]&&t.length>4&&dist(t,p)<=Math.min(tol(t),tol(p)));return false;}
 const CFG={
  stop:new Set("a o as os de da do das dos em no na nos nas pra pro para por com que qual quais me mim eu voce vc sobre regiao cultivar variedade material soja dagma plantar planto posso quero saber informacao info ai la e bora vamos vamo vai eae eai opa fala oi ola ei cara mano po blz beleza show massa top certo ok okay entao sim nao obrigado valeu vlw bom boa dia tarde noite favor pfv hmm aham quer".split(' ')),
  naoVazias:new Set(['sul','norte','oeste','leste','centro']),
@@ -71,11 +73,13 @@ const CFG={
  ufExata:new Set(['mt','ms','go','df','mg','sp','ba','ma','to','pa','pi','ro']),
  ufNome:{'mato grosso do sul':'MS','mato grosso sul':'MS','mato grosso':'MT',matogrosso:'MT',goias:'GO','distrito federal':'DF',brasilia:'DF','minas gerais':'MG',minas:'MG','sao paulo':'SP',bahia:'BA',maranhao:'MA',tocantins:'TO',piaui:'PI',rondonia:'RO',acre:'AC',alagoas:'AL',amapa:'AP',amazonas:'AM',ceara:'CE','espirito santo':'ES',paraiba:'PB',pernambuco:'PE',parana:'PR','rio de janeiro':'RJ','rio grande do norte':'RN','rio grande do sul':'RS',roraima:'RR','santa catarina':'SC',sergipe:'SE'},
  ufOutras:new Set(['ac','al','ap','am','es','pb','pr','rj','rn','rs','sc','rr']),
+ ufAdj:{mineiro:'MG',mineira:'MG',goiano:'GO',goiana:'GO',baiano:'BA',baiana:'BA',paulista:'SP',maranhense:'MA',tocantinense:'TO',piauiense:'PI',paraense:'PA',rondoniense:'RO',matogrossense:'MT',brasiliense:'DF'},
  ufFuzzy:['maranhao','tocantins','rondonia','alagoas','amazonas','paraiba','pernambuco','roraima','sergipe','parana'],
- fino:{'MA|batavo':'sul','BA|beira da serra':'oeste','TO|campos lindos':'norte'},
+ fino:{'MA|batavo':'sul','MA|serra do penitente':'sul','BA|beira da serra':'oeste','TO|campos lindos':'norte'},
  manejo:{irrigado:['pivo central','com agua','irrigacao','irrigado','pivo'],sequeiro:['sem irrigacao','sequeiro','seco','chuva']},
- atributo:{populacao:['quantas plantas','plantas por ha','populacao','densidade','stand'],janela:['quando plantar','semeadura','janela','epoca','periodo','data'],ciclo:['quantos dias','colheita','ciclo'],gm:['grupo de maturacao','maturacao','gm'],fertilidade:['exigencia','exigente'],pmg:['peso de mil','peso de graos','pmg','pms'],cisto:['nematoide','heterodera','cisto','racas'],sanidade:['olho de ra','phytophthora','sanidade','doencas','doenca','cancro','pustula'],biotec:['biotecnologia','tecnologia','biotec','evento']},
- regSyn:{'medio norte':['mn','medionorte'],'vale do araguaia':['araguaia','vale'],'abaixo 400m':['abaixo 400','abaixo de 400','baixo 400','menos de 400','abaixo de 400m','abaixo'],'acima de 400m':['acima 400','acima de 400','alto 400','mais de 400','acima 400m','acima'],'alto paranaiba':['paranaiba'],'triangulo':['triangulo mineiro'],'c lindos':['campos lindos','clindos','lindos'],'beira da serra':['beira serra','serra'],'sudoeste e sul':['sudoeste sul'],'noroeste':['noroeste de minas']},
+ atributo:{populacao:['quantas plantas','plantas por ha','plantas por hectare','plantas hectare','plantas ha','populacao','densidade','stand','estande','numero de plantas','pop','sementes por hectare','quantas sementes'],janela:['quando plantar','quando semear','semear','semeadura','janela','epoca','periodo','data'],ciclo:['quantos dias','colheita','quando colhe','quando colher','dias para colher','ciclo','e precoce','e tardia','precoce ou tardia','tempo de ciclo'],gm:['grupo de maturacao','grupo de maturidade','maturacao','gm','grupo'],fertilidade:['exigencia','exigente','fertilidade exigida','nivel de fertilidade','fertilidade'],pmg:['peso de mil','peso de 1000','peso de graos','peso do grao','peso dos graos','peso de grao','pmg','pms'],cisto:['nematoide','heterodera','cisto','racas','nematoide de cisto'],
+ galha:['galha','galhas','meloidogyne','incognita','javanica','nematoide de galha','nematoide das galhas','nematoide galha'],sanidade:['fitossanidade','fitossanitario','fitossanitaria','olho de ra','phytophthora','sanidade','doencas','doenca','cancro','pustula'],biotec:['biotecnologia','tecnologia','biotec','evento']},
+ regSyn:{'campos lindos':['c lindos','clindos','c lindo'],'serra do penitente':['penitente','serra penitente'],'medio norte':['mn','medionorte'],'vale do araguaia':['araguaia','vale'],'abaixo 400m':['abaixo 400','abaixo de 400','baixo 400','menos de 400','abaixo de 400m','abaixo'],'acima de 400m':['acima 400','acima de 400','alto 400','mais de 400','acima 400m','acima'],'alto paranaiba':['paranaiba'],'triangulo':['triangulo mineiro'],'c lindos':['campos lindos','clindos','lindos'],'beira da serra':['beira serra','serra'],'sudoeste e sul':['sudoeste sul'],'noroeste':['noroeste de minas']},
  manterLocal:['nessa regiao','nesta regiao','na mesma regiao','mesmo local','mesmo lugar','aqui','ali','nesse municipio','neste municipio','na minha regiao','pra mim','tambem','e nessa','ai tambem','mesma cidade','mesmo municipio','nessa cidade','nesta cidade'],
  zerar:['nova consulta','nova pergunta','limpar','limpa','esquece','esqueca','recomecar','do zero','outra coisa','mudar de assunto','recomeca','comecar de novo'],
 };
@@ -88,7 +92,7 @@ const CITYWORDS=new Set();B.municipios.forEach(x=>norm(x.m).split(' ').forEach(w
 const REACH=new Set();B.municipios.forEach(m=>{if(m.rec&&m.mic)REACH.add(m.uf+'|'+m.rec+'|'+nuc(m.mic));});
 const URPOS=new Set(ALLROWS.map(r=>r.uf+'|'+r.rec));
 const POSCITIES=Object.keys(muniByName).filter(k=>muniByName[k].some(r=>r.rec&&URPOS.has(r.uf+'|'+r.rec)));
-const VOCAB=new Set(('cultivares cultivar variedades variedade materiais material fertilidade populacao precoce precoces tardia tardias ciclo janela irrigado sequeiro arenoso argiloso misto solo solos enlist conkesta intacta xtend ipro recomendada recomendadas indicada indicadas melhor melhores menor maior mais menos exigencia exigente regiao regioes estado estados cidade cidades municipio municipios micro macro posicionada posicionadas informacao informacoes quero queria gostaria saber preciso portfolio lancamento novidade nova novo planta plantas hectare hectares graos peso cisto nematoide sanidade doencas biotecnologia biotecnologias alta media baixa alto medio baixo fraco forte bom boa ruim area areas fazenda produtor plantio plantar semeadura soja funciona vai bem fica como vcs voces tem algo alguma algum obrigado obrigada valeu ajuda qual quais sobre nessa nesta aqui tambem indicam indica recomenda opcoes colocar posso precisa vale pena dados detalhe detalhes quantas quantos quanto existem existe todas todos tudo lista listar mostrar mostra ver dizer diga fala falar novas novos nova novo lancamentos').split(' '));
+const VOCAB=new Set(('cultivares cultivar variedades variedade materiais material fertilidade populacao precoce precoces tardia tardias ciclo janela irrigado sequeiro arenoso argiloso misto solo solos enlist conkesta intacta xtend ipro recomendada recomendadas indicada indicadas melhor melhores menor maior mais menos exigencia exigente regiao regioes estado estados cidade cidades municipio municipios micro macro posicionada posicionadas informacao informacoes quero queria gostaria saber preciso portfolio lancamento novidade nova novo planta plantas hectare hectares graos peso cisto nematoide sanidade doencas biotecnologia biotecnologias alta media baixa alto medio baixo fraco forte bom boa ruim area areas fazenda produtor plantio plantar semeadura soja funciona vai bem fica como vcs voces tem algo alguma algum obrigado obrigada valeu ajuda qual quais sobre nessa nesta aqui tambem indicam indica recomenda opcoes colocar posso precisa vale pena dados detalhe detalhes quantas quantos quanto existem existe todas todos tudo lista listar mostrar mostra ver dizer diga fala falar novas novos nova novo lancamentos mineiro mineira goiano goiana baiano baiana paulista maranhense tocantinense piauiense paraense rondoniense brasiliense').split(' '));
 function fuzzyCity(tk){let best=null;
  for(let len=Math.min(5,tk.length);len>=1;len--)for(let i=0;i+len<=tk.length;i++){
    const parts=tk.slice(i,i+len);if(parts.every(w=>VOCAB.has(w)||CFG.stop.has(w)||/^\d/.test(w)))continue;
@@ -108,11 +112,19 @@ function cap1(x){return x.charAt(0).toUpperCase()+x.slice(1);}
 function preT(s){return s.replace(/\bdag(?:ma)?\s?(\d{4})\b/g,'$1').replace(/\b402\s?c\b/g,'mt medio norte').replace(/\b402\s?o\b(?!\s+que)/g,'mt oeste').replace(/\bsmg\b/g,'mg sul');}
 function aliasesNuc(n){if(!n)return[];return [n].concat(CFG.regSyn[n]||[]);}
 function cap(s){return s.replace(/\b\w/g,m=>m.toUpperCase());}
-function hasRegionWord(s){return /\b(sul|norte|oeste|leste|centro|transicao|araguaia|paranaiba|pontal|triangulo|arenito|batavo|beira|medio norte|medionorte|sudoeste|noroeste|abaixo|acima|sequeiro|irrigado)\b/.test(s);}
-function findCity(tk){for(let len=Math.min(5,tk.length);len>=1;len--){for(let i=0;i+len<=tk.length;i++){
- const span=tk.slice(i,i+len).join(' ');
- if(len===1&&(CFG.stop.has(span)||CFG.naoVazias.has(span)||CFG.ufExata.has(span)||CFG.ufOutras.has(span)||BLOCKCITY.has(span)||/^\d+$/.test(span)))continue;
- if(muniByName[span]){const longer=Object.keys(muniByName).filter(nm=>nm.startsWith(span+' '));return {name:span,recs:muniByName[span],longer:longer};}}}return null;}
+function aliasScore(nn,e){let b=0;aliasesNuc(nn).forEach(a=>{if(a.length>b&&hasPhrase(e.tkReg,e.sReg,a))b=a.length;});return b;}
+function hasRegionWord(s){return /\b(sul|norte|oeste|leste|centro|transicao|araguaia|paranaiba|pontal|triangulo|arenito|batavo|beira|penitente|lindos|medio norte|medionorte|sudoeste|noroeste|abaixo|acima|sequeiro|irrigado)\b/.test(s);}
+function findCity(tk,uf){let best=null;
+ for(let len=Math.min(5,tk.length);len>=1;len--){for(let i=0;i+len<=tk.length;i++){
+  const span=tk.slice(i,i+len).join(' ');
+  if(len===1&&(CFG.stop.has(span)||CFG.naoVazias.has(span)||CFG.ufExata.has(span)||CFG.ufOutras.has(span)||BLOCKCITY.has(span)||/^\d+$/.test(span)))continue;
+  if(span.indexOf('passa ')===0&&i>0&&['me','te','nos','se','vc','voce','pode'].indexOf(tk[i-1])>=0)continue; // "me passa…" é verbo
+  const recs=muniByName[span];if(!recs)continue;
+  // prioridade: cidade do estado informado > nome mais longo > cidade com cultivar posicionada
+  const sc=(uf&&recs.some(r=>r.uf===uf)?1000:0)+len*10+(recs.some(r=>r.rec&&POS_UF.has(r.uf))?5:0);
+  if(!best||sc>best.sc)best={sc:sc,span:span,recs:recs};}}
+ if(!best)return null;
+ return {name:best.span,recs:best.recs,longer:Object.keys(muniByName).filter(nm=>nm.startsWith(best.span+' '))};}
 function parseSoil(s){
  if(/argilos|\bargila\b|barrent|textura argilos|solo pesad|massape|solos argilos/.test(s))return{tipo:'solo',lo:4,hi:5,nome:'argiloso'};
  if(/\bmist[ao]\b|mesclad|textura medi|media textura|textura mist|solo medio|textura intermediari/.test(s))return{tipo:'solo',lo:3,hi:4,nome:'misto'};
@@ -120,16 +132,17 @@ function parseSoil(s){
  return null;}
 function parseFert(s,tk){let m=s.match(/\b(fertilidade|nivel|solo|ambiente)\s+([1-5])\b/);if(m)return{tipo:'num',v:+m[2]};
  if(/\balt[ao]\b|\bric[ao]\b|\bfertil\b|\bfort[e]\b|\botim[ao]\b|solo bom|bom solo|terra boa/.test(s))return{tipo:'classe',lo:4,hi:5};
- if(/\bmedi[ao]s?\b|\bmedio\b|\bregular\b|\bmediano\b|\brazoavel\b|\bintermediari/.test(s))return{tipo:'classe',lo:2,hi:3};
+ if(/\bmedi[ao]s?\b|\bmedio\b|\bregular\b|\bmediano\b|\brazoavel\b|\b(solo|fertilidade|ambiente|nivel) intermediari/.test(s))return{tipo:'classe',lo:2,hi:3};
  if(/\bbaix[ao]\b|\bfrac[ao]\b|\bpobre\b|\bruim\b/.test(s))return{tipo:'classe',lo:1,hi:1};
  const n=tk.filter(t=>/^[1-5]$/.test(t));if(n.length)return{tipo:'num',v:+n[0]};return null;}
 function anoDe(c){return 2000+parseInt(String(c.codigo).slice(2),10);}
+let RK_SO=null; // ranking só entre as cultivares citadas
 function detectComp(s){
- const hasC=/\b(menor|maior|menos|mais|melhor|pior|ranking|ordenar|ordem)\b/.test(s)||/qual a de|quais as de/.test(s);
+ const hasC=/\b(menor|maior|menos|mais|melhor|pior|ranking|ordenar|ordem)\b/.test(s)||/qual a de|quais as de|colhe primeiro|colhe antes|sai primeiro|colhe por ultimo|colhe depois/.test(s)||(/\b(precoces?|tardias?)\b/.test(s)&&!/\b[6-9]\d{3}\b/.test(s));
  if(!hasC)return null;let crit=null,dir=null;
  if(/antig|mais nova|mais novas|mais recente|lancament/.test(s)){crit='ano';dir=/antig/.test(s)?'asc':'desc';}
- else if(/precoc|ciclo curto|mais rapid|mais cedo/.test(s)){crit='ciclo';dir='asc';}
- else if(/tardi|ciclo longo/.test(s)){crit='ciclo';dir='desc';}
+ else if(/precoc|ciclo curto|ciclo mais curto|menor ciclo|mais rapid|mais cedo|colhe primeiro|colhe antes|colhe mais cedo|sai primeiro/.test(s)){crit='ciclo';dir='asc';}
+ else if(/tardi|ciclo longo|ciclo mais longo|maior ciclo|colhe por ultimo|colhe depois|colhe mais tarde/.test(s)){crit='ciclo';dir='desc';}
  else if(/fertil|exigen|exigent|rustic/.test(s))crit='fert';
  else if(/\bgm\b|grupo de matura|matura/.test(s))crit='gm';
  else if(/pmg|peso de gra|graos pesados|peso do grao|pesad/.test(s))crit='pmg';
@@ -153,7 +166,7 @@ function recoIntent(s){return RECO.some(k=>s.includes(k))||/recomend|\bindic|sug
 /* ===== Normalizador de fala (transcrição → texto que o agente entende) ===== */
 const NUMW={zero:0,um:1,uma:1,dois:2,duas:2,tres:3,quatro:4,cinco:5,seis:6,meia:6,sete:7,oito:8,nove:9,dez:10,onze:11,doze:12,treze:13,quatorze:14,catorze:14,quinze:15,dezesseis:16,dezasseis:16,dezessete:17,dezoito:18,dezenove:19,vinte:20,trinta:30,quarenta:40,cinquenta:50,sessenta:60,setenta:70,oitenta:80,noventa:90,cem:100,cento:100,duzentos:200,trezentos:300,quatrocentos:400,quinhentos:500,seiscentos:600,setecentos:700,oitocentos:800,novecentos:900,mil:1000};
 const NUM_AMBIG=new Set(['um','uma','meia']);
-const NUM_TRIG=new Set(['nivel','fertilidade','solo','ambiente','macro','micro','rec','m','microrregiao','microregiao','macrorregiao','macroregiao']);
+const NUM_TRIG=new Set(['raca','racas','nivel','fertilidade','solo','ambiente','macro','micro','rec','m','microrregiao','microregiao','macrorregiao','macroregiao']);
 const FALA_BIO=[[/\bconqu?isto\b|\bconqista\b|\bconkist[ao]\b|\bconquest[ao]\b|\bconkesta\b|\bconcesta\b/g,'conkesta'],[/\ben ?list[ie]?\b|\benliste\b/g,'enlist'],
  [/\bi ?dois ?(x|xis)\b|\bi ?2 ?x\b|\bai ?tu ?ex\b|\bintacta (dois|2) ?(xtend|extend|x|xis)?\b/g,'i2x'],[/\b(i|ai) pro\b|\bipiro\b/g,'ipro'],
  [/\b(rr|erre erre) ?(dois|2) ?pro\b/g,'rr2 pro'],[/\bextend\b|\bxtende\b/g,'xtend']];
@@ -192,6 +205,7 @@ function normFala(s){
  for(let i=0;i<out.length;){
    if(!isD(out[i])){res.push(out[i]);i++;continue;}
    let j=i;while(j+1<out.length&&isD(out[j+1]))j++;
+   if(/^racas?$/.test(res[res.length-1]||'')||/^racas?$/.test(res[res.length-2]||'')){for(let z=i;z<=j;z++)res.push(out[z]);i=j+1;continue;}
    let k=i;while(k<=j){let took=false;
      for(let L=Math.min(4,j-k+1);L>=2;L--){const parts=out.slice(k,k+L).map(x=>String(parseInt(x,10)));
        const c=parts.join(''),cz=parts.filter(x=>x!=='0').join('');
@@ -204,33 +218,56 @@ function normFala(s){
 
 function extrai(text){const s=preT(normFala(norm(text))),tk=s.split(' ').filter(Boolean);
  const e={cod:null,cultErro:null,uf:null,cidade:null,fert:null,manejo:null,attr:null,comp:null,manter:false,zerar:false,regWord:false,alt:null,s,tk};
- const q=tk.find(t=>/^\d{4}$/.test(t)&&!/^(19|20)\d\d$/.test(t));
+ const q=tk.find(t=>/^[6-9]\d{3}$/.test(t));
  if(q){if(byCode[q])e.cod=q;else e.cultErro={val:q,sug:CULTS.map(c=>c.codigo).filter(c=>dist(c,q)===1)};}
  else{for(const al in CFG.cultAlias)if(hasPhrase(tk,s,al)){e.cod=CFG.cultAlias[al];e.lanc=true;}}
  const nomes=Object.keys(CFG.ufNome).sort((a,b)=>b.length-a.length);
  let ufNm=null;for(const nm of nomes)if((' '+s+' ').includes(' '+nm+' ')){e.uf=CFG.ufNome[nm];ufNm=nm;break;}
- if(!e.uf){const sig=tk.find(t=>CFG.ufExata.has(t)||CFG.ufOutras.has(t));if(sig)e.uf=sig.toUpperCase();}
+ const toRaw=/(^|[^a-zà-ú])tô([^a-zà-ú]|$)/i.test(String(text)),toPrim=tk.indexOf('to');
+ const ehVerboTo=i=>(toRaw&&i===toPrim)||['em','no','na','nos','nas','aqui','com','de','precisando','querendo','pensando','plantando','indo','num','numa','procurando','buscando','vendo','olhando','a','afim','pensado','com','perdido','sem'].indexOf(tk[i+1])>=0;
+ if(!e.uf){const sig=tk.find((t,i)=>(CFG.ufExata.has(t)||CFG.ufOutras.has(t))&&!(t==='to'&&ehVerboTo(i)));if(sig)e.uf=sig.toUpperCase();}
+ if(!e.uf&&/\bpar[áÁ]\b/.test(String(text))){e.uf='PA';ufNm='para';}
+ if(!e.uf&&/\b(sul mato grossense|sul matogrossense)\b/.test(s)){e.uf='MS';ufNm=(s.match(/\b(sul mato grossense|sul matogrossense)\b/)||[])[0];}
+ if(!e.uf&&/\bmato grossense\b/.test(s)){e.uf='MT';ufNm='mato grossense';}
+ if(!e.uf){const REGW=['sul','norte','oeste','leste','sudoeste','noroeste','nordeste','sudeste','centro','triangulo','cerrado','regiao','interior','extremo'];
+  const ai=tk.findIndex((t,i)=>CFG.ufAdj[t]&&(!muniByName[t]||REGW.indexOf(tk[i-1])>=0));if(ai>=0){e.uf=CFG.ufAdj[tk[ai]];ufNm=tk[ai];}}
+ if(!e.uf){ // nome de estado composto com erro de digitação ou colado (disrito federal, mins gerais, saopaulo)
+   const nomesC=Object.keys(CFG.ufNome).filter(n=>n.indexOf(' ')>0).sort((a,b)=>b.length-a.length);
+   for(const nm of nomesC){const k=nm.split(' ').length,tol2=nm.length<=10?1:2,colado=nm.replace(/ /g,'');let hit=null;
+     for(let i=0;i+k<=tk.length&&!hit;i++){const sp=tk.slice(i,i+k).join(' ');if(sp!==nm&&dist(sp,nm)<=tol2&&!muniByName[sp])hit=sp;}
+     if(!hit){const t1=tk.find(t=>t===colado||(t.length>=8&&dist(t,colado)<=1));if(t1&&!muniByName[t1])hit=t1;}
+     if(hit){e.uf=CFG.ufNome[nm];ufNm=hit;e.ufFuzzy=hit;break;}}}
+ if(!e.uf&&/\bpara$/.test(s)&&tk.length<=3){e.uf='PA';ufNm='para';}
  if(!e.uf){const pm=s.match(/\b(no|do|em|ao|pro|pelo|estado do|estado de|sul do|norte do) para\b/);if(pm){e.uf='PA';ufNm='para';}}
  if(!e.uf){for(const t of tk){if(t.length<6||CITYWORDS.has(t)||CFG.stop.has(t))continue;for(const nm of CFG.ufFuzzy){const d=dist(t,nm);if(d>0&&d<=tol(t)){e.uf=CFG.ufNome[nm];e.ufFuzzy=t;ufNm=t;break;}}if(e.uf)break;}}
  if(ufNm){const cf=findCity(tk);if(cf&&cf.name!==ufNm&&(' '+cf.name+' ').includes(' '+ufNm+' ')){e.uf=null;ufNm=null;e.ufFuzzy=null;
-   const sig=tk.find(t=>(CFG.ufExata.has(t)||CFG.ufOutras.has(t))&&!(' '+cf.name+' ').includes(' '+t+' '));if(sig)e.uf=sig.toUpperCase();}}
+   const sig=tk.find((t,i)=>(CFG.ufExata.has(t)||CFG.ufOutras.has(t))&&!(' '+cf.name+' ').includes(' '+t+' ')&&!(t==='to'&&ehVerboTo(i)));if(sig)e.uf=sig.toUpperCase();}}
  e.sReg=ufNm?(' '+s+' ').replace(' '+ufNm+' ',' ').trim():s;e.tkReg=e.sReg.split(' ').filter(Boolean);
  const mm=s.match(/\bmacro\s*(?:regiao\s*)?([1-5])\b|\bmacrorregiao\s*([1-5])\b|\bmacroregiao\s*([1-5])\b|\bm([1-5])\b/);if(mm)e.macro='M'+(mm[1]||mm[2]||mm[3]||mm[4]);
  const mi=s.match(/\b(?:micro|microrregiao|microregiao|rec|m)\s*(\d{3})\b/);
  if(mi&&RECSET.has(mi[1]))e.micro=mi[1];else{const b3=tk.find(t=>/^\d{3}$/.test(t)&&RECSET.has(t));if(b3)e.micro=b3;}
  e.macroMenu=!e.macro&&/\b(macros|macrorregioes|macroregioes|por macro|por macrorregiao)\b/.test(s);
- e.cidade=findCity(e.tkReg);
+ e.cidade=findCity(e.tkReg,e.uf);
  if(!e.cidade&&e.uf){for(const t of e.tkReg){if(BLOCKCITY.has(t)&&muniByName[t]){const f=muniByName[t].filter(r=>r.uf===e.uf&&r.rec);if(f.length){e.cidade={name:t,recs:f,longer:[]};break;}}}}
  if(!e.cidade&&!e.uf){if(/\bpontal\b/.test(s))e.colisao='pontal';else if(/\bparanaiba\b/.test(s)&&!/\balto paranaiba\b/.test(s))e.colisao='paranaiba';}
  if(!e.cidade||!e.cidade.recs.some(r=>r.rec&&POS_UF.has(r.uf))){const fz=fuzzyCity(e.tkReg);
    if(fz&&(!e.cidade||fz.len>=e.cidade.name.split(' ').length)){e.cidade={name:fz.name,recs:muniByName[fz.name],longer:[]};e.cityFuzzy=fz.span;
      if(fz.ties.length>1){e.cityTie=fz.ties.flatMap(n=>muniByName[n].filter(r=>r.rec&&POS_UF.has(r.uf)));}}}
+ {const MES={janeiro:1,fevereiro:2,marco:3,abril:4,maio:5,junho:6,julho:7,agosto:8,setembro:9,outubro:10,novembro:11,dezembro:12};
+  let dm=String(text).match(/\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\b/);let d=null,m=null;if(dm){d=+dm[1];m=+dm[2];}
+  else{const mm=s.match(/\b(\d{1,2}) de (janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/);if(mm){d=+mm[1];m=MES[mm[2]];}}
+  if(d&&m&&d>=1&&d<=31&&m>=1&&m<=12)e.data={d:d,m:m};}
  let sCity=s;if(e.cidade){sCity=(' '+s+' ').replace(' '+e.cidade.name+' ',' ');if(e.cityFuzzy)sCity=sCity.replace(' '+e.cityFuzzy+' ',' ');sCity=sCity.trim();}
+ sCity=sCity.replace(/\b(medio norte|medionorte)\b/g,' ');
  sCity=sCity.replace(/\balto (paranaiba|araguaia|garcas|taquari|boa vista|paraiso|alegre|horizonte|rio doce|jequitiba|caparao|porto)\b/g,' ');
+ sCity=sCity.replace(/\bracas? (?:\d{1,2}\+?)(?:(?: e | ou |, | )\d{1,2}\+?)*/g,' ');
+ if(e.data)sCity=sCity.replace(/\b\d{1,2} \d{1,2}\b/,' ').replace(/\b\d{1,2} de (janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/,' ');
  const sF=sCity.replace(/\bmacro\s*(?:regiao\s*)?[1-5]\b|\bmacror?regiao\s*[1-5]\b|\bm[1-5]\b/g,' ').replace(/\s+/g,' ').trim();
  e.fert=parseSoil(sCity)||parseFert(sF,sF.split(' ').filter(Boolean));
  for(const mj in CFG.manejo)for(const al of CFG.manejo[mj])if(hasPhrase(tk,s,al)){e.manejo=mj;break;}
+ {const mr=s.match(/\bracas? ((?:\d{1,2}\+?)(?:(?: e | ou |, | )\d{1,2}\+?)*)/);if(mr)e.raca=mr[1].split(/ e | ou |, | /).filter(Boolean);}
  e.comp=detectComp(s);
+ e.cods=[...new Set(tk.filter(t=>/^[6-9]\d{3}$/.test(t)&&byCode[t]))];
  {const ya=s.match(/\b(20\d\d)\b/);if(ya)e.ano=+ya[1];else{const sf=s.match(/\bsafra (\d{2}) (\d{2})\b/);if(sf)e.ano=2000+(+sf[1]);}}
  e.lancPlural=/lancamentos|mais novas|mais recentes|novas cultivares|cultivares novas|lancadas|lancados/.test(s);
  if((e.ano||e.lancPlural)&&e.lanc){e.cod=null;e.lanc=false;}
@@ -238,16 +275,20 @@ function extrai(text){const s=preT(normFala(norm(text))),tk=s.split(' ').filter(
  e.biotech=detectBiotech(s);
  e.overview=OVERVIEW.some(k=>s.includes(k));
  e.regiaoMenu=s.includes('por regiao');
- for(const at in CFG.atributo)for(const al of CFG.atributo[at])if(hasPhrase(tk,s,al)){e.attr=at;break;}
+ {const sA=e.cidade?(' '+s+' ').replace(' '+e.cidade.name+' ',' ').replace(e.cityFuzzy?' '+e.cityFuzzy+' ':'@@',' ').trim():s,tkA=sA.split(' ').filter(Boolean);
+  for(const at in CFG.atributo)for(const al of CFG.atributo[at])if(hasPhrase(tkA,sA,al)){e.attr=at;break;}}
  e.manter=CFG.manterLocal.some(p=>(' '+s+' ').includes(' '+p+' '));
- e.zerar=CFG.zerar.some(p=>s.includes(p));
+ {const sZ=e.cidade?(' '+s+' ').replace(' '+e.cidade.name+' ',' '):(' '+s+' ');e.zerar=CFG.zerar.some(p=>sZ.includes(' '+p+' '));} // comando fora do nome da cidade e como palavra inteira
  e.refCult=!e.cod&&(/\b(essa|esta|dessa|desta|nessa|esse|este|desse|deste)\s+(cultivar|variedade|material|semente|opcao|indicacao)\b/.test(s)||/\b(sobre ela|dela|e ela|fale mais|fala mais|falar mais|me conta mais|conta mais|conte mais|mais detalhes|mais detalhe|detalhes|detalhar|mais sobre|saber mais|mais informacoes|mais informacao|a mesma)\b/.test(s)||(/\b(primeira|segunda|terceira|ultima)\b/.test(s)&&!/\b20\d\d\b|safra/.test(s)));
+ e.fase=(/\babertura\b/.test(s)&&!/abertura de vage/.test(s))?'abertura':(/\bintermediari[ao]\b/.test(s.replace(/\b(solo|fertilidade|ambiente|nivel) intermediari[ao]s?\b/g,' '))||/meio da janela/.test(s)?'intermediaria':(/\bfechamento\b|final da janela|fim da janela/.test(s)?'fechamento':null));
  e.outroLocal=/\b(outra localidade|outras localidades|outra cidade|outras cidades|outro lugar|outros lugares|outro local|outros locais|outro estado|outros estados|outra regiao|outras regioes|outro municipio|outra area|qualquer lugar|qualquer regiao|qualquer cidade|qualquer estado|em outro|em outra|fora daqui|outra praca)\b/.test(s);
  e.regWord=hasRegionWord(e.sReg);
+ if(e.attr==='fertilidade'&&e.fert)e.attr=null;
+ if(e.attr==='cisto'&&/\bnematoides\b|\bnematoide[s]? (da|de|na|do)\b(?! cisto| galha)/.test(s)&&!/cisto|heterodera|racas/.test(s))e.attr='nematoides'; // "nematoides" em geral: cisto + galha // com nível na frase é comparação de solo, não pergunta de exigência
  return e;}
 
 /* ===== Contexto ===== */
-function blankCtx(){return {cod:null,muni:null,uf:null,cond:null,rec:null,manejo:null,atributo:null,lastWasList:false,scope:null,ultimos:[]};}
+function blankCtx(){return {cod:null,muni:null,uf:null,cond:null,rec:null,manejo:null,atributo:null,lastWasList:false,scope:null,ultimos:[],janAsk:null,janLast:null};}
 let ctx=blankCtx();
 function limpaLocal(){ctx.muni=null;ctx.uf=null;ctx.cond=null;ctx.rec=null;ctx.manejo=null;ctx.scope=null;}
 
@@ -278,13 +319,15 @@ function resolveCity(e){
 function resolveRegionUF(e){ // cultivar+uf+palavra de região (sem cidade) -> {muni:fake,cond} | {ask} | null
  const cod=e.cod||ctx.cod;if(!cod)return null;const c=byCode[cod];
  if(e.uf){let nucsUf=[...new Set(c.posicionamento.filter(r=>r.uf===e.uf).map(r=>nuc(r.detalhe)).filter(Boolean))];
-   const matched=nucsUf.filter(nn=>aliasesNuc(nn).some(a=>hasPhrase(e.tkReg,e.sReg,a))).sort((a,b)=>b.length-a.length);
+   const sc={};nucsUf.forEach(nn=>{sc[nn]=aliasScore(nn,e);});const mx=Math.max(0,...Object.values(sc));
+   const matched=nucsUf.filter(nn=>mx>0&&sc[nn]===mx).sort((a,b)=>b.length-a.length);
    let tn=matched.length?matched[0]:(nucsUf.length===1?nucsUf[0]:null);
    if(!tn)return null;
    const r0=c.posicionamento.find(r=>r.uf===e.uf&&nuc(r.detalhe)===tn);
    return {muni:{m:null,uf:e.uf,mic:r0.detalhe},cond:r0.detalhe};}
  // sem uf: região em vários estados
- const hits=[],seen={};c.posicionamento.forEach(r=>{const nn=nuc(r.detalhe);if(!nn)return;if(aliasesNuc(nn).some(a=>hasPhrase(e.tkReg,e.sReg,a))){const k=r.uf+'|'+nn;if(!seen[k]){seen[k]=1;hits.push({uf:r.uf,nuc:nn,det:r.detalhe});}}});
+ const hits=[],seen={};c.posicionamento.forEach(r=>{const nn=nuc(r.detalhe);if(!nn)return;const p=aliasScore(nn,e);if(p>0){const k=r.uf+'|'+nn;if(!seen[k]){seen[k]=1;hits.push({uf:r.uf,nuc:nn,det:r.detalhe,p:p});}}});
+ {const mx=Math.max(0,...hits.map(h=>h.p));for(let i=hits.length-1;i>=0;i--)if(hits[i].p<mx)hits.splice(i,1);}
  const ufs=[...new Set(hits.map(h=>h.uf))];
  if(ufs.length>1)return{ask:askUF('A '+c.nome+' aparece em “'+hits[0].nuc+'” em '+ufs.length+' estados. Em qual você está?',ufs,e)};
  if(ufs.length===1){e.uf=ufs[0];return resolveRegionUF(e);}
@@ -308,7 +351,13 @@ function attrLine(a,r,c){
  if(a==='gm')return 'GM: '+r.gm_local;
  if(a==='fertilidade')return 'Exigência: nível '+r.fert_nota+' ('+classe(r.fert_nota)+')';
  if(a==='pmg')return 'PMG: '+c.planta.pmg;
- if(a==='cisto'){const ci=c.cisto;return 'Cisto: '+(((ci.resistente.length?'resistente às raças '+ci.resistente.join(', '):'')+(ci.moderada.length?(ci.resistente.length?'; ':'')+'moderadamente resistente às raças '+ci.moderada.join(', '):''))||'não informado');}
+ if(a==='cisto'){const ci=c.cisto,S=RACAS_PORT.filter(x=>ci.resistente.indexOf(x)<0&&ci.moderada.indexOf(x)<0);
+   if(!ci.resistente.length&&!ci.moderada.length)return 'Cisto: <b>suscetível</b>';
+   const pl=l=>(l.length>1?'às raças ':'à raça ')+l.join(', ');
+   return 'Cisto: '+[ci.resistente.length?'resistente '+pl(ci.resistente):'',ci.moderada.length?'moderadamente resistente '+pl(ci.moderada):'',S.length?'suscetível '+pl(S):''].filter(Boolean).join('; ');}
+ if(a==='galha'){const g=c.galha;if(!g)return 'Nematoide de galha: não informado';const t=v=>v==='S'?'suscetível':v==='R'?'resistente':v==='MR'?'moderadamente resistente':v;
+   return 'Nematoide de galha: <i>M. incognita</i> '+t(g.incognita)+' · <i>M. javanica</i> '+t(g.javanica);}
+ if(a==='nematoides')return attrLine('cisto',r,c)+'<br>'+attrLine('galha',r,c);
  if(a==='sanidade'){const sa=c.sanidade;return 'Sanidade: '+(((sa.resistente.length?'resistente a '+sa.resistente.join(', '):'')+(sa.moderada.length?'; moderadamente resistente a '+sa.moderada.join(', '):''))||'ver pontos fortes');}
  if(a==='biotec')return 'Biotecnologia: '+c.biotecnologia;
  return null;}
@@ -320,7 +369,7 @@ function renderDetail(cod,muni,cond,atributo,fert){const c=byCode[cod];const cn=
  const ls=mergeRows(rows);const head=(muni.m?muni.m+'/'+muni.uf:muni.uf)+' — '+cond;
  return {bubbles:ls.map(r=>{const loc='<div class="loc">'+head+' (REC '+r.recs.join('/')+')</div>';
    if(atributo){const al=attrLine(atributo,r,c);if(al)return loc+'<div class="t">'+c.nome+'</div><div class="k">'+al+'</div>';}
-   return loc+'<div class="t">'+c.nome+' · recomendada</div><div class="k">'+fertBloco(cod,r.fert_nota,fert)+'<br>GM '+r.gm_local+' · ciclo '+r.ciclo_dias+' dias<br>Janela: '+r.plantio_preferencial+' <span style="color:#667781">(tolerado '+r.plantio_tolerado+')</span><br><b>População: '+r.populacao+'/ha</b></div><div class="info">a densidade populacional pode variar conforme a fertilidade do solo e a época de plantio</div>';})};}
+   return loc+'<div class="t">'+c.nome+' · recomendada</div><div class="k">'+fertBloco(cod,r.fert_nota,fert)+'<br>GM '+r.gm_local+' · ciclo '+r.ciclo_dias+' dias<br>Janela: '+r.plantio_preferencial+' <span style="color:#667781">(tolerado '+r.plantio_tolerado+')</span>'+janLinha(cod,r)+'<br><b>População: '+r.populacao+'/ha</b></div><div class="info">a densidade populacional pode variar conforme a fertilidade do solo e a época de plantio</div>';})};}
 function regioesDe(cod){const c=byCode[cod];const regs=[],seen={};
  c.posicionamento.forEach(r=>{const k=r.uf+'|'+nuc(r.detalhe);if(!seen[k]){seen[k]={uf:r.uf,det:r.detalhe,cn:nuc(r.detalhe),recs:[]};seen[k].push=1;regs.push(seen[k]);}seen[k].recs.push(String(r.rec));});
  return regs;}
@@ -340,12 +389,14 @@ function listaCultivares(muni,cond,fert,bt){const cn=nuc(cond);const localnm=(mu
  const notaDe=c=>{const r=c.posicionamento.find(r=>r.uf===muni.uf&&nuc(r.detalhe)===cn);return r?+r.fert_nota:9;};
  const recs=[...new Set(lst.flatMap(c=>c.posicionamento.filter(r=>r.uf===muni.uf&&nuc(r.detalhe)===cn).map(r=>String(r.rec))))].sort();
  const head='<div class="loc">'+(muni.m?muni.m+'/'+muni.uf:muni.uf)+' — '+cond+' (REC '+recs.join('/')+')</div>';
+ const ord=[...lst].sort((a,b)=>notaDe(a)-notaDe(b)),mnN=ord.length?notaDe(ord[0]):0;
+ const menosTxt='<div class="k" style="margin-top:4px">A menos exigente aqui: <b>'+ord.filter(c=>notaDe(c)===mnN).map(c=>c.nome.replace('DAGMA ','')).join(', ')+'</b> (nível '+mnN+').</div>';
  if(fert&&fert.tipo==='solo'){const compat=lst.filter(c=>{const n=notaDe(c);return n>=fert.lo&&n<=fert.hi;});
    if(compat.length)return{bubbles:[head+'<div class="t">Para solo '+fert.nome+' — fertilidade '+fert.lo+'–'+fert.hi+' ('+compat.length+')</div><div class="k">'+compat.map(c=>c.nome.replace('DAGMA ','')+' (nível '+notaDe(c)+')').join(', ')+'</div><div class="info">Digite o número pra ver o detalhe.</div>']};
-   return{bubbles:[head+'<div class="t">Nenhuma na faixa de solo '+fert.nome+' ('+fert.lo+'–'+fert.hi+') aqui</div><div class="k">As posicionadas: '+lst.map(c=>c.nome.replace('DAGMA ','')+' (nível '+notaDe(c)+')').join(', ')+'</div>']};}
+   return{bubbles:[head+'<div class="t">Nenhuma na faixa de solo '+fert.nome+' ('+fert.lo+'–'+fert.hi+') aqui</div><div class="k">As posicionadas, da menos para a mais exigente: '+ord.map(c=>c.nome.replace('DAGMA ','')+' (nível '+notaDe(c)+')').join(', ')+'</div>'+menosTxt]};}
  if(fert){const uMax=fert.tipo==='num'?fert.v:fert.hi;const clr=classe(uMax);const compat=lst.filter(c=>notaDe(c)<=uMax);
    if(compat.length)return{bubbles:[head+'<div class="t">Para solo de '+clr.toLowerCase()+' fertilidade ('+compat.length+')</div><div class="k">'+compat.map(c=>c.nome.replace('DAGMA ','')+' (nível '+notaDe(c)+')').join(', ')+'</div><div class="info">As demais pedem fertilidade mais alta. Digite o número pra ver o detalhe.</div>']};
-   return{bubbles:[head+'<div class="t">Nenhuma de '+clr.toLowerCase()+' fertilidade nessa região</div><div class="k">As cultivares daqui pedem fertilidade mais alta: '+lst.map(c=>c.nome.replace('DAGMA ','')+' (nível '+notaDe(c)+')').join(', ')+'</div>']};}
+   return{bubbles:[head+'<div class="t">Nenhuma de '+clr.toLowerCase()+' fertilidade nessa região</div><div class="k">As cultivares daqui pedem fertilidade mais alta (da menos para a mais exigente): '+ord.map(c=>c.nome.replace('DAGMA ','')+' (nível '+notaDe(c)+')').join(', ')+'</div>'+menosTxt]};}
  return{bubbles:[head+'<div class="t">'+(bt?btName(bt)+' em '+localnm:'Cultivares posicionadas')+' ('+lst.length+')</div><div class="k">'+lst.map(c=>c.nome.replace('DAGMA ','')).join(', ')+'</div>'+fineLine(muni,cond,bt)+'<div class="info">Digite o número de uma delas (ex.: '+lst[0].codigo+') pra ver fertilidade, ciclo, janela e população.</div>']};}
 
 /* ===== Ranking (comparativa) ===== */
@@ -358,10 +409,10 @@ function valCult(c,crit,muni,cond,filt){ // retorna {v, vtxt} para a cultivar no
  if(crit==='gm'){const vs=rows.map(r=>parseFloat(r.gm_local));const mn=Math.min.apply(null,vs),mx=Math.max.apply(null,vs);return{v:mn,vtxt:mn===mx?('GM '+mn):('GM '+mn+'–'+mx)};}
  if(crit==='pmg'){const v=parseFloat(c.planta.pmg);return{v:v,vtxt:'PMG '+c.planta.pmg};}
  if(crit==='pop'){const mn=Math.min.apply(null,rows.map(r=>+(r.populacao.match(/\d+/)[0])));return{v:mn,vtxt:'pop. a partir de '+mn+' mil'};}
- if(crit==='cisto'){const R=c.cisto.resistente.length,M=c.cisto.moderada.length;const sc=R?2:(M?1:0);return{v:sc,vtxt:R?'resistente (raça '+c.cisto.resistente.join('/')+')':(M?'moderadamente resistente':'sem pacote')};}
+ if(crit==='cisto'){const R=c.cisto.resistente.length,M=c.cisto.moderada.length;const sc=R?2:(M?1:0);return{v:sc,vtxt:R?'resistente (raça '+c.cisto.resistente.join('/')+')':(M?'moderadamente resistente':((c.cisto.suscetivel&&c.cisto.suscetivel.length)?'suscetível':'sem informação'))};}
  return null;}
 function ranking(comp,muni,cond,bt,filt,flabel){const crit=comp.crit;
- let escopo=bt?CULTS.filter(c=>c.biotecnologia_sigla===bt):CULTS;
+ let escopo=bt?CULTS.filter(c=>c.biotecnologia_sigla===bt):CULTS;if(RK_SO)escopo=escopo.filter(c=>RK_SO.indexOf(c.codigo)>=0);
  if(filt){escopo=escopo.filter(c=>c.posicionamento.some(filt));}
  else if(muni){const cn=cond?nuc(cond):null;escopo=escopo.filter(c=>c.posicionamento.some(r=>r.uf===muni.uf&&(!cn||nuc(r.detalhe)===cn)));}
  let items=[];escopo.forEach(c=>{const v=valCult(c,crit,muni,cond,filt);if(v)items.push({c,v:v.v,vtxt:v.vtxt});});
@@ -375,7 +426,7 @@ function ranking(comp,muni,cond,bt,filt,flabel){const crit=comp.crit;
  ctx.topoRank=grp.length?items.filter(it=>it.vtxt===grp[0].vtxt).map(it=>it.c.codigo):null;
  const localTxt=filt?(' em '+flabel):muni?(' em <b>'+(muni.m?muni.m+'/'+muni.uf+' — ':'')+(cond||muni.uf)+'</b>'):' no portfólio';
  const linhas=grp.map(g=>'<b>'+g.vtxt+':</b> '+g.nomes.join(', ')).join('<br>');
- return {bubbles:['<div class="t">Ranking · '+dirtxt+localTxt.replace(/<\/?b>/g,'')+'</div><div class="k">'+linhas+'</div><div class="info">Digite o número de uma cultivar pra ver o detalhe.</div>']};}
+ return {bubbles:['<div class="t">Ranking · '+dirtxt+(RK_SO?' entre '+RK_SO.join(' e '):'')+localTxt.replace(/<\/?b>/g,'')+'</div><div class="k">'+linhas+'</div><div class="info">Digite o número de uma cultivar pra ver o detalhe.</div>']};}
 
 function listaBiotech(bt){const lst=CULTS.filter(c=>c.biotecnologia_sigla===bt);
  return {bubbles:['<div class="t">'+btName(bt)+' — '+lst.length+' cultivares</div><div class="k">'+lst.map(c=>c.nome.replace('DAGMA ','')).join(', ')+'</div><div class="info">Me diga uma cidade pra ver quais são recomendadas lá (ex.: “'+(bt==='CE'?'Enlist':bt)+' em Sorriso”).</div>']};}
@@ -417,7 +468,7 @@ function listaScope(sc,fert,bt){const f=scopeFilt(sc);let lst=CULTS.filter(c=>c.
 function renderRows(cod,rows,atributo,fert){const c=byCode[cod];const ls=mergeRows(rows);
  return {bubbles:ls.map(r=>{const loc='<div class="loc">'+r.uf+' — '+r.detalhe+' (REC '+r.recs.join('/')+')</div>';
    if(atributo){const al=attrLine(atributo,r,c);if(al)return loc+'<div class="t">'+c.nome+'</div><div class="k">'+al+'</div>';}
-   return loc+'<div class="t">'+c.nome+' · recomendada</div><div class="k">'+fertBloco(cod,r.fert_nota,fert)+'<br>GM '+r.gm_local+' · ciclo '+r.ciclo_dias+' dias<br>Janela: '+r.plantio_preferencial+' <span style="color:#667781">(tolerado '+r.plantio_tolerado+')</span><br><b>População: '+r.populacao+'/ha</b></div><div class="info">a densidade populacional pode variar conforme a fertilidade do solo e a época de plantio</div>';})};}
+   return loc+'<div class="t">'+c.nome+' · recomendada</div><div class="k">'+fertBloco(cod,r.fert_nota,fert)+'<br>GM '+r.gm_local+' · ciclo '+r.ciclo_dias+' dias<br>Janela: '+r.plantio_preferencial+' <span style="color:#667781">(tolerado '+r.plantio_tolerado+')</span>'+janLinha(cod,r)+'<br><b>População: '+r.populacao+'/ha</b></div><div class="info">a densidade populacional pode variar conforme a fertilidade do solo e a época de plantio</div>';})};}
 function regionButtons(cod,rows){const seen={},btns=[];rows.forEach(r=>{const d=detClean(r);const k=r.uf+'|'+d;if(seen[k])return;seen[k]=1;btns.push({label:r.uf+(d?' '+d:''),query:cod+' '+r.uf+(d?' '+d:'')});});return btns.slice(0,12);}
 function scopeCultivar(cod,sc,atributo,fert,manejo,origem){const c=byCode[cod];const f=scopeFilt(sc);let rows=c.posicionamento.filter(f);
  if(!rows.length){let extra='';if(sc.t!=='macro'){const l=CULTS.filter(x=>x.posicionamento.some(f));if(l.length)extra='<br>'+(sc.t==='uf'?cap1(ufEm(sc.uf)):'Na '+scopeLabel(sc))+' as posicionadas são: '+l.map(x=>x.nome.replace('DAGMA ','')).join(', ')+'.';}
@@ -436,14 +487,19 @@ function fineAsk(cod,muni,cond,e){
  const pn=nuc(cond);const c=byCode[cod];const kids=fineKids(muni.uf,pn);if(!kids.length)return null;
  const rowsKid=c.posicionamento.filter(r=>r.uf===muni.uf&&kids.indexOf(nuc(r.detalhe))>=0);if(!rowsKid.length)return null;
  const hasParent=c.posicionamento.some(r=>r.uf===muni.uf&&nuc(r.detalhe)===pn);
+ const sig=r=>[r.gm_local,r.ciclo_dias,r.plantio_preferencial,r.plantio_tolerado,r.fert_nota,r.populacao].join('|');
+ const sigPai=new Set(c.posicionamento.filter(r=>r.uf===muni.uf&&nuc(r.detalhe)===pn).map(sig));
+ const rowsKidDif=hasParent?rowsKid.filter(r=>!sigPai.has(sig(r))):rowsKid; // sub-região com os mesmos dados da região-mãe não vira opção
+ if(!rowsKidDif.length)return null;
  const opts=[];if(hasParent)opts.push({label:cond.replace(/\s*\((irrigado|sequeiro)\)\s*$/i,''),set:'cond',val:cond});
- const seen={};rowsKid.forEach(r=>{const n=nuc(r.detalhe);if(seen[n])return;seen[n]=1;opts.push({label:detClean(r),set:'cond',val:r.detalhe});});
+ const seen={};rowsKidDif.forEach(r=>{const n=nuc(r.detalhe);if(seen[n])return;seen[n]=1;opts.push({label:detClean(r),set:'cond',val:r.detalhe});});
  return {bubbles:['Em <b>'+muni.m+'/'+muni.uf+'</b> (Micro '+muni.rec+'), a <b>'+c.nome+'</b> é posicionada '+(hasParent?'em mais de uma condição':'na condição <b>'+opts.map(o=>o.label).join(', ')+'</b>')+'. Qual é a da sua área?'],buttons:opts,pend:{type:'cond',e}};}
 function fineLine(muni,cond,bt){if(!muni)return '';const kids=fineKids(muni.uf,nuc(cond));if(!kids.length)return '';
  const out=[];kids.forEach(kn=>{let l=CULTS.filter(c=>c.posicionamento.some(r=>r.uf===muni.uf&&nuc(r.detalhe)===kn));if(bt)l=l.filter(c=>c.biotecnologia_sigla===bt);if(l.length){const det=ALLROWS.find(r=>r.uf===muni.uf&&nuc(r.detalhe)===kn);out.push('Na condição <b>'+detClean(det)+'</b> (mesma micro): '+l.map(c=>c.nome.replace('DAGMA ','')).join(', '));}});
  return out.length?'<div class="k" style="margin-top:4px">'+out.join('<br>')+'</div>':'';}
 function resolveRegionNoCod(e){const hits={};
- ALLROWS.filter(r=>!e.uf||r.uf===e.uf).forEach(r=>{const nn=nuc(r.detalhe);if(!nn)return;if(aliasesNuc(nn).some(a=>hasPhrase(e.tkReg,e.sReg,a))){const k=r.uf+'|'+nn;if(!hits[k])hits[k]={uf:r.uf,nn,det:r.detalhe};}});
+ ALLROWS.filter(r=>!e.uf||r.uf===e.uf).forEach(r=>{const nn=nuc(r.detalhe);if(!nn)return;const p=aliasScore(nn,e);if(p>0){const k=r.uf+'|'+nn;if(!hits[k])hits[k]={uf:r.uf,nn,det:r.detalhe,p:p};}});
+ {const mx=Math.max(0,...Object.values(hits).map(h=>h.p));Object.keys(hits).forEach(k=>{if(hits[k].p<mx)delete hits[k];});}
  const best={};Object.values(hits).forEach(h=>{if(!best[h.uf]||h.nn.length>best[h.uf].nn.length)best[h.uf]=h;});const H=Object.values(best);
  if(!H.length)return null;
  if(H.length>1)return{ask:askUF('A região “'+H[0].nn+'” existe em '+H.length+' estados. Em qual você está?',H.map(h=>h.uf),e)};
@@ -481,9 +537,129 @@ function portfolioCrit(fert,bt){
  const ufs=[...new Set(hits.flatMap(h=>h.ufs))].sort();
  return {bubbles:['<div class="t">Em todo o portfólio'+btx+', para '+fx+'</div><div class="k">'+hits.map(h=>'• <b>'+h.c.nome.replace('DAGMA ','')+'</b> (nível '+h.min+') — '+h.ufs.join(', ')).join('<br>')+'</div><div class="info">Me diz a cidade ou o estado pra eu posicionar na micro.</div>'],
    buttons:ufs.map(u=>({label:u,query:qf+qb+' '+u.toLowerCase()}))};}
+const JANELA=[["M3","6525","303","XEB"],["M3","6525","302SMG","XEB"],["M3","6824","301GO","MEE"],["M3","6824","301MS","MEE"],["M3","6824","302GO","MEE"],["M3","6824","303","MEE"],["M3","6824","SEQUEIRO304","MEE"],["M3","6824","IRRIGADO304","XEE"],["M3","7225","301GO","MEE"],["M3","7225","301MS","MEE"],["M3","7225","302GO","MEB"],["M3","7225","303","MEE"],["M3","7225","SEQUEIRO304","MEE"],["M3","7225","IRRIGADO304","XEE"],["M3","7825","301GO","XEB"],["M3","7825","301MS","XEB"],["M3","7825","302GO","XEM"],["M3","7825","303","MEB"],["M3","7825","SEQUEIRO304","XEB"],["M3","7825","IRRIGADO304","XEB"],["M3","7825","401/404GO","XEM"],["M4","7626","401","MEE"],["M4","7626","402-C","MEE"],["M4","7626","402-O","MEE"],["M4","7626","402-RO(<400M)","MEE"],["M4","7626","402-RO(>400M)","MEE"],["M4","7626","403","MEE"],["M4","7225","401","MEB"],["M4","7825","401","EEB"],["M4","7825","402-C","EEB"],["M4","7825","402-O","EEB"],["M4","7825","402-RO(<400M)","EEM"],["M4","7825","402-RO(>400M)","EEB"],["M4","7825","403","EEB"],["M4","7621","401","EBM"],["M4","7621","402-C","EBM"],["M4","7621","402-O","EBM"],["M4","7621","402-RO(<400M)","EBM"],["M4","7621","402-RO(>400M)","EBM"],["M4","7621","403","EBM"],["M4","7921","401","MEB"],["M4","7921","402-C","MEB"],["M4","7921","402-O","MEB"],["M4","7921","402-RO(<400M)","MEB"],["M4","7921","402-RO(>400M)","MEB"],["M4","7921","403","MEB"],["M4","8321","401","MEB"],["M4","8321","402-C","MEB"],["M4","8321","402-O","MEB"],["M4","8321","402-RO(<400M)","BEB"],["M4","8321","402-RO(>400M)","MEB"],["M4","8321","403","MEB"],["M5","6824","BAHIA-IRRIGADO","E--"],["M5","7225","BAHIA-IRRIGADO","B--"],["M5","7225","MARANHÃO","BB-"],["M5","7225","TOCANTINS","BB-"],["M5","7621","BAHIA-IRRIGADO","B--"],["M5","7621","MARANHÃO","BB-"],["M5","7621","TOCANTINS","BB-"],["M5","7921","BAHIA","BEB"],["M5","7921","MARANHÃO","BBB"],["M5","7921","TOCANTINS","BBB"],["M5","7921","PIAUÍ","-BE"],["M5","7924","BAHIA","BBX"],["M5","8221","BAHIA","BBB"],["M5","8221","MARANHÃO","MBM"],["M5","8221","TOCANTINS","BBM"],["M5","8221","PIAUÍ","-BM"]];
+/* ===== Janela de semeadura (adaptação por fase, decks M3/M4/M5 validados) ===== */
+const JAN_LBL={E:'excelente',B:'boa',M:'media',X:'baixa','-':'nenhuma'};
+const FASE_NOME={abertura:'Abertura',intermediaria:'Intermediária',fechamento:'Fechamento'};
+const FASE_NA={abertura:'na abertura',intermediaria:'na intermediária',fechamento:'no fechamento'},FASE_JN={abertura:'janela de abertura',intermediaria:'janela intermediária',fechamento:'janela de fechamento'};
+const FASE_Q={abertura:'janela de abertura',intermediaria:'janela intermediaria',fechamento:'janela de fechamento'};
+function janCobre(deck,k,r){const u=r.uf,rec=String(r.rec),n=nuc(r.detalhe),det=String(r.detalhe).toLowerCase();
+ switch(deck+'|'+k){
+  case 'M3|301GO':return u==='GO'&&rec==='301';case 'M3|301MS':return u==='MS'&&rec==='301';case 'M3|302GO':return u==='GO'&&rec==='302';
+  case 'M3|302SMG':return u==='MG'&&n==='sul';case 'M3|303':return rec==='303';
+  case 'M3|SEQUEIRO304':return rec==='304'&&det.indexOf('irrig')<0;case 'M3|IRRIGADO304':return rec==='304'&&det.indexOf('irrig')>=0;
+  case 'M3|401/404GO':return u==='GO'&&(rec==='401'||rec==='404');
+  case 'M4|401':return u==='MT'&&rec==='401';case 'M4|402-C':return u==='MT'&&n==='medio norte';case 'M4|402-O':return u==='MT'&&n==='oeste';
+  case 'M4|402-RO(<400M)':return u==='RO'&&n.indexOf('abaixo')>=0;case 'M4|402-RO(>400M)':return u==='RO'&&n.indexOf('acima')>=0;case 'M4|403':return u==='MT'&&rec==='403';
+  case 'M5|BAHIA-IRRIGADO':return u==='BA'&&det.indexOf('irrig')>=0;case 'M5|BAHIA':return u==='BA';
+  case 'M5|MARANHÃO':return u==='MA';case 'M5|TOCANTINS':return u==='TO';case 'M5|PIAUÍ':return u==='PI';}
+ return false;}
+function janDe(cod,r){const h=JANELA.filter(x=>x[1]===cod&&janCobre(x[0],x[2],r)).sort((a,b)=>b[2].length-a[2].length)[0];
+ if(!h)return null;return {deck:h[0],abertura:JAN_LBL[h[3][0]],intermediaria:JAN_LBL[h[3][1]],fechamento:JAN_LBL[h[3][2]]};}
+function janNome(v,deck){return {excelente:'Excelente',boa:deck==='M3'?'Alta':'Boa',media:'Média',baixa:'Baixa',nenhuma:'–'}[v];}
+function janPill(v,deck){const c={excelente:['#2E7D32','#fff'],boa:['#9CCC65','#1b3a10'],media:['#FFEB3B','#4a4000'],baixa:['#E53935','#fff'],nenhuma:['#ECEFF1','#78909C']}[v];
+ return '<span class="jp" style="background:'+c[0]+';color:'+c[1]+'">'+janNome(v,deck)+'</span>';}
+function janLinha(cod,r){const j=janDe(cod,r);if(!j)return '';return '<br>Adaptação na janela: '+['abertura','intermediaria','fechamento'].map(f=>FASE_NOME[f]+' '+janPill(j[f],j.deck)).join(' ');}
+function dataOrd(d,m){return m>=7?(m-7)*31+d:(m+5)*31+d;}
+function faixaOrd(s){const p=String(s).split('-').map(x=>x.trim().split('/').map(Number));return [dataOrd(p[0][0],p[0][1]),dataOrd(p[1][0],p[1][1])];}
+function janData(r,dq){const q=dataOrd(dq.d,dq.m),p=faixaOrd(r.plantio_preferencial),t=faixaOrd(r.plantio_tolerado);
+ return (q>=p[0]&&q<=p[1])?'preferencial':((q>=t[0]&&q<=t[1])?'tolerada':'fora');}
+function dataTxt(dq){return String(dq.d).padStart(2,'0')+'/'+String(dq.m).padStart(2,'0');}
+function fertFits(f,n){return f.tipo==='solo'?(n>=f.lo&&n<=f.hi):(n<=(f.tipo==='num'?f.v:f.hi));}
+function fertTxt(f){return f.tipo==='solo'?('solo '+f.nome+' (nível '+f.lo+'–'+f.hi+')'):(f.tipo==='num'?('fertilidade nível '+f.v):('nível de fertilidade '+(f.hi>=4?'alto (4–5)':f.hi<=1?'baixo (1)':'médio (2–3)')));}
+const JAN_ORD={excelente:0,boa:1,media:2,baixa:3};
+function janEntradas(muni,cond,fase){const cn=nuc(cond),out=[];
+ CULTS.forEach(c=>{const rows=c.posicionamento.filter(r=>r.uf===muni.uf&&nuc(r.detalhe)===cn);if(!rows.length)return;
+   const vistos={};rows.forEach(r=>{const j=janDe(c.codigo,r);const k=j?(j.deck+j.abertura+j.intermediaria+j.fechamento):'sem';if(vistos[k])return;vistos[k]=1;
+     out.push({c,r,j,v:j?j[fase]:null,nota:+r.fert_nota,tag:(rows.length>1&&Object.keys(vistos).length>1)?' ('+r.detalhe+')':''});});
+   const ks=out.filter(x=>x.c===c);if(ks.length>1)ks.forEach(x=>{if(!x.tag)x.tag=' ('+x.r.detalhe+')';});});
+ return out;}
+function janLinhaItem(x){return '<div style="margin:3px 0">'+janPill(x.v,x.j.deck)+' <b>'+x.c.nome.replace('DAGMA ','')+x.tag+'</b> — exige nível '+x.nota+' ('+classe(x.nota)+')</div>';}
+function nomes(l){return l.map(x=>x.c.nome.replace('DAGMA ','')+x.tag).join(', ');}
+function janelaLista(muni,cond,fase,fert,dq){
+ const city=muni.m||(muni.uf+' '+cond),loc=(muni.m?muni.m+'/'+muni.uf:muni.uf)+' — '+cond;
+ const E=janEntradas(muni,cond,fase);const rec=E.filter(x=>x.j&&x.v!=='nenhuma').sort((a,b)=>JAN_ORD[a.v]-JAN_ORD[b.v]||a.nota-b.nota);
+ const nao=E.filter(x=>x.j&&x.v==='nenhuma'),sem=E.filter(x=>!x.j);const deck=rec.length?rec[0].j.deck:(nao.length?nao[0].j.deck:'');
+ const recs=[...new Set(E.map(x=>String(x.r.rec)))].sort();let h='<div class="loc">'+loc+' (REC '+recs.join('/')+')'+(deck?' · deck '+deck:'')+'</div>';
+ const F=FASE_NOME[fase].toLowerCase();let botoes=[];const citados=new Set();
+ if(fert){const ok=rec.filter(x=>fertFits(fert,x.nota));
+   if(ok.length){h+='<div class="t">Recomendadas para a '+FASE_JN[fase]+' — '+fertTxt(fert)+'</div>'+ok.map(janLinhaItem).join('');
+     const outras=rec.filter(x=>ok.indexOf(x)<0);if(outras.length)h+='<div class="k" style="margin-top:4px;font-size:12.5px">Também recomendadas '+FASE_NA[fase]+', mas exigem fertilidade mais alta: '+outras.map(x=>x.c.nome.replace('DAGMA ','')+x.tag+' (nível '+x.nota+')').join(', ')+'</div>';
+     botoes=ok.map(x=>x.c.codigo);}
+   else{h+='<div class="warn">Não temos cultivares recomendadas para a <b>'+FASE_JN[fase]+'</b> em '+city+' com <b>'+fertTxt(fert)+'</b>.</div>';
+     if(rec.length)h+='<div class="t">'+cap1(FASE_NA[fase])+' em '+city+':</div>'+rec.map(janLinhaItem).join('');
+     const fitOut=E.filter(x=>fertFits(fert,x.nota)&&rec.indexOf(x)<0);fitOut.forEach(x=>citados.add(x));
+     if(fitOut.length)h+='<div class="k" style="margin-top:4px;font-size:12.5px">Para '+fertTxt(fert)+', posicionada em '+city+': '+fitOut.map(x=>'<b>'+x.c.nome.replace('DAGMA ','')+x.tag+'</b> (nível '+x.nota+') — '+(x.j?'não tem recomendação '+FASE_NA[fase]:'o deck não traz a informação de janela')).join('; ')+'.</div>';
+     botoes=rec.map(x=>x.c.codigo).concat(fitOut.map(x=>x.c.codigo));}}
+ else{if(rec.length)h+='<div class="t">'+cap1(FASE_JN[fase])+' em '+city+'</div>'+rec.map(janLinhaItem).join('');
+   else h+='<div class="warn">Não temos cultivares recomendadas para a <b>'+FASE_JN[fase]+'</b> em '+city+'.</div>';
+   botoes=rec.map(x=>x.c.codigo);}
+ const nao2=nao.filter(x=>!citados.has(x)),sem2=sem.filter(x=>!citados.has(x));
+ if(nao2.length)h+='<div class="k" style="margin-top:4px;font-size:12.5px">Sem recomendação '+FASE_NA[fase]+': '+nomes(nao2)+'.</div>';
+ if(sem2.length)h+='<div class="k" style="margin-top:4px;font-size:12.5px">O deck não traz a informação de janela para: '+nomes(sem2)+'.</div>';
+ if(dq){const g={preferencial:[],tolerada:[],fora:[]};E.forEach(x=>g[janData(x.r,dq)].push(x.c.nome.replace('DAGMA ','')+x.tag));
+   h+='<div class="info"><b>'+dataTxt(dq)+' na janela da planilha</b> — preferencial: '+(g.preferencial.join(', ')||'—')+(g.tolerada.length?' · tolerada: '+g.tolerada.join(', '):'')+(g.fora.length?' · fora: '+g.fora.join(', '):'')+'</div>';}
+ h+='<div class="info">Toque numa cultivar pra ver o detalhe, ou escolha outra janela.</div>';
+ const outrasF=['abertura','intermediaria','fechamento'].filter(f=>f!==fase);
+ ctx.lastWasList=true;ctx.janLast={data:dq,fert:fert};
+ return {bubbles:[h],buttons:[...new Set(botoes)].map(c=>({label:byCode[c].nome.replace('DAGMA ',''),query:c})).concat(outrasF.map(f=>({label:FASE_NOME[f],query:FASE_Q[f]})))};}
+function janelaCultivar(cod,muni,cond,fase,fert,dq){const c=byCode[cod],cn=nuc(cond);
+ const rows=c.posicionamento.filter(r=>r.uf===muni.uf&&nuc(r.detalhe)===cn);if(!rows.length)return negativa(cod,muni,cond,'');
+ const F=FASE_NOME[fase].toLowerCase(),loc=(muni.m?muni.m+'/'+muni.uf:muni.uf)+' — '+cond;
+ const bolhas=mergeRows(rows).map(r=>{const j=janDe(cod,r);let h='<div class="loc">'+loc+' (REC '+r.recs.join('/')+')'+(j?' · deck '+j.deck:'')+'</div><div class="t">'+c.nome+' · '+FASE_JN[fase]+(rows.length>1?' · '+r.detalhe:'')+'</div><div class="k">';
+   if(!j)h+='O deck não traz a adaptação por fase desta cultivar nesta região.<br>';
+   else if(j[fase]==='nenhuma')h+='<b>Não tem recomendação para a '+FASE_JN[fase]+'</b> nesta região.<br>';
+   else h+=janPill(j[fase],j.deck)+' adaptação '+FASE_NA[fase]+'<br>';
+   if(j)h+='Por fase: '+['abertura','intermediaria','fechamento'].map(f=>FASE_NOME[f]+' '+janPill(j[f],j.deck)).join(' ')+'<br>';
+   h+=fertBloco(cod,r.fert_nota,fert)+'<br>';
+   if(dq){const w=janData(r,dq);h+='<b>'+dataTxt(dq)+'</b> '+(w==='fora'?'está <b>fora</b> da janela':'está na janela <b>'+w+'</b>')+'<br>';}
+   h+='Janela: '+r.plantio_preferencial+' <span style="color:#667781">(tolerado '+r.plantio_tolerado+')</span><br><b>População: '+r.populacao+'/ha</b></div>';return h;});
+ ctx.cod=cod;ctx.janLast={data:dq,fert:fert};
+ return {bubbles:bolhas,buttons:['abertura','intermediaria','fechamento'].filter(f=>f!==fase).map(f=>({label:FASE_NOME[f],query:FASE_Q[f]}))};}
+function janelaFlow(e,pend,prev){
+ const viaPend=pend&&pend.needLocal&&(e.cidade||e.regWord);
+ if(!(e.fase||e.data||viaPend))return null;if(e.macro||e.micro)return null;
+ const dq=e.data||(pend&&pend.data)||(e.fase&&!e.data&&prev?prev.data:null);
+ const fert=e.fert||(pend&&pend.fert)||(e.fase&&!e.fert&&prev?prev.fert:null);
+ const fase=e.fase||(pend&&pend.fase)||null;
+ let cod=e.cod||(pend&&pend.cod)||null;
+ if(!cod&&!e.cidade&&!recoIntent(e.s)&&ctx.ultimos&&ctx.ultimos.length===1)cod=ctx.ultimos[0];
+ let muni=null,cond=null;
+ if(e.cidade){const L=resolveCity(e);if(L&&L.ask)return L.ask;if(L&&(L.fora||L.semCult))return foraCity(L.fora||L.semCult);if(L&&L.muni){muni=L.muni;cond=L.cond;}}
+ if(!muni&&e.regWord){const L=cod?resolveRegionUF(Object.assign({},e,{cod:cod})):resolveRegionNoCod(e);if(L&&L.ask)return L.ask;if(L&&L.muni){muni=L.muni;cond=L.cond;}}
+ if(muni){limpaLocal();ctx.muni=muni;ctx.uf=muni.uf;ctx.cond=cond;}
+ else if(ctx.muni&&ctx.cond){muni=ctx.muni;cond=ctx.cond;}
+ if(!muni){ctx.janAsk={cod,data:dq,fert,fase,needLocal:true};return {bubbles:['Pra trazer a janela de semeadura'+(cod?' da <b>'+byCode[cod].nome+'</b>':'')+', me diga a <b>cidade</b> (ex.: “Sorriso”, “Rio Verde”).']};}
+ if(!fase){ctx.janAsk={cod,data:dq,fert,fase:null};
+   const alvo=cod?'a cultivar <b>'+byCode[cod].nome+'</b>':'<b>'+(muni.m?muni.m+' ('+muni.uf+' '+cond+')':muni.uf+' '+cond)+'</b>';
+   return {bubbles:['<div class="loc">'+(muni.m?muni.m+'/'+muni.uf:muni.uf)+' — '+cond+'</div>Qual janela de semeadura deseja informação para '+alvo+'?'],buttons:['abertura','intermediaria','fechamento'].map(f=>({label:FASE_NOME[f],query:FASE_Q[f]}))};}
+ return cod?janelaCultivar(cod,muni,cond,fase,fert,dq):janelaLista(muni,cond,fase,fert,dq);}
+
+/* ===== Raças do nematoide de cisto ===== */
+const RACAS_PORT=['3','6','9','10','14','14+'];
+function racaFlow(e){
+ const ped=e.raca,fora=ped.filter(r=>RACAS_PORT.indexOf(r)<0),dentro=ped.filter(r=>RACAS_PORT.indexOf(r)>=0);
+ const nm=c=>c.nome.replace('DAGMA ','');
+ const st=(c,rc)=>c.cisto.resistente.indexOf(rc)>=0?'resistente':c.cisto.moderada.indexOf(rc)>=0?'moderadamente resistente':'suscetível';
+ const avisoFora=fora.length?'<div class="warn">Não temos informação de resistência à raça '+fora.join(', ')+' do nematoide de cisto. As raças trabalhadas no portfólio são 3, 6, 9, 10, 14 e 14+.</div>':'';
+ if(e.cod){const c=byCode[e.cod];ctx.cod=e.cod;
+   return {bubbles:['<div class="t">'+c.nome+' · nematoide de cisto</div>'+avisoFora+(dentro.length?'<div class="k">'+dentro.map(rc=>'Raça '+rc+': <b>'+st(c,rc)+'</b>').join('<br>')+'</div>':'')]};}
+ let filt=null,label='no portfólio';
+ if(e.cidade){const L=resolveCity(e);if(L&&L.ask)return L.ask;if(L&&(L.fora||L.semCult))return foraCity(L.fora||L.semCult);
+   if(L&&L.muni){const cn=nuc(L.cond);filt=r=>r.uf===L.muni.uf&&nuc(r.detalhe)===cn;label='em '+(L.muni.m?L.muni.m+'/'+L.muni.uf:L.muni.uf);limpaLocal();ctx.muni=L.muni;ctx.uf=L.muni.uf;ctx.cond=L.cond;}}
+ else if(e.uf&&POS_UF.has(e.uf)){filt=r=>r.uf===e.uf;label=ufEm(e.uf);}
+ else if(e.uf&&!POS_UF.has(e.uf))return foraUF(e.uf);
+ const lst=CULTS.filter(c=>!filt||c.posicionamento.some(filt));
+ if(!dentro.length)return {bubbles:[avisoFora],buttons:RACAS_PORT.map(r=>({label:'Raça '+r,query:'cultivar resistente a raça '+r+(filt&&ctx.muni&&ctx.muni.m?' em '+ctx.muni.m:'')}))};
+ const bl=dentro.map(rc=>{const g={'resistente':[],'moderadamente resistente':[],'suscetível':[],'sem informação':[]};lst.forEach(c=>g[st(c,rc)].push(nm(c)));
+   return '<div class="t">Raça '+rc+' do nematoide de cisto '+label+'</div><div class="k">Resistentes: '+(g['resistente'].join(', ')||'nenhuma')+'<br>Moderadamente resistentes: '+(g['moderadamente resistente'].join(', ')||'nenhuma')+(g['suscetível'].length?'<br>Suscetíveis: '+g['suscetível'].join(', '):'')+(g['sem informação'].length?'<br>Sem informação: '+g['sem informação'].join(', '):'')+'</div>';});
+ ctx.lastWasList=!!filt;
+ const bts=[];lst.forEach(c=>{if(dentro.some(rc=>{const s=st(c,rc);return s==='resistente'||s==='moderadamente resistente';}))bts.push({label:nm(c),query:c.codigo});});
+ return {bubbles:[avisoFora+bl.join('')+'<div class="info">Toque numa cultivar pra ver o detalhe'+(filt?'':' ou me diga a cidade')+'.</div>'],buttons:bts.slice(0,12)};}
+
 /* ===== PROCESSO (contexto + resposta) ===== */
 function smallTalk(e){const s=e.s;
- const anyEnt=e.cod||e.cidade||e.uf||e.macro||e.micro||e.biotech||e.comp||e.fert||e.attr||e.overview||e.macroMenu||e.regiaoMenu||recoIntent(s)||e.cultErro||e.zerar||e.ano||e.lancPlural||e.lanc||e.global||e.manejo||e.regWord||e.outroLocal||e.refCult||/lancad|lancament|cultivar|variedade|material/.test(s);
+ const anyEnt=e.cod||e.cidade||e.uf||e.macro||e.micro||e.biotech||e.comp||e.fert||e.attr||e.overview||e.macroMenu||e.regiaoMenu||recoIntent(s)||e.cultErro||e.zerar||e.ano||e.lancPlural||e.lanc||e.global||e.manejo||e.regWord||e.outroLocal||e.refCult||e.fase||e.data||/lancad|lancament|cultivar|variedade|material/.test(s);
  if(anyEnt)return null;
  if(/\b(obrigad[oa]|valeu|vlw|agradec|brigad[oa]|muito bom|perfeito|show de bola)\b/.test(s))return {bubbles:['Por nada! Quando precisar, é só perguntar — cidade, estado, macro, micro ou cultivar.']};
  if(/\b(ajuda|socorro|como funciona|como usar|o que voce faz|o que vc faz|o que voce sabe|menu|comandos)\b/.test(s))return {bubbles:['Pode perguntar do seu jeito. Alguns exemplos:<br>• <b>o que plantar em Sorriso</b><br>• <b>7825 em Juara, alta fertilidade</b><br>• <b>cultivares no Maranhão</b> · <b>Macro 5</b> · <b>micro 301</b><br>• <b>qual a mais precoce em Rio Verde</b><br>• <b>cultivares Enlist</b> · <b>solo arenoso em Sapezal</b>'],buttons:[{label:'Ver portfólio',query:'portfolio'},{label:'Por macrorregião',query:'por macro'}]};
@@ -498,6 +674,8 @@ function processCore(e){
    return{bubbles:['Não encontrei a '+e.cultErro.val+'. Você quis dizer '+su.join(' ou ')+'?'],buttons:su.map(c=>({label:byCode[c].nome,set:'confirmcod',val:c})),pend:{type:'confirm',cod:su.length===1?su[0]:null,sug:su,e,drill}};}
  const wasList=ctx.lastWasList;ctx.lastWasList=false;
  const topoPrev=ctx.topoRank;ctx.topoRank=null;
+ RK_SO=(e.comp&&e.cods&&e.cods.length>=2)?e.cods:null;
+ const janPend=ctx.janAsk,janPrev=ctx.janLast;ctx.janAsk=null;ctx.janLast=null;
  const novoLocal=!!(e.cidade||e.uf||e.regWord||e.micro||e.macro);
  const prev={muni:ctx.muni,cond:ctx.cond,scope:ctx.scope};
  const wantReco=recoIntent(e.s);
@@ -530,7 +708,9 @@ function processCore(e){
  if(e.regiaoMenu&&!e.cod&&!bt&&!e.comp)return {bubbles:['Me diga o <b>estado</b>, a <b>macro</b> (M2 a M5), a <b>micro</b> (ex.: 301) ou a <b>cidade</b> que eu listo as cultivares de lá.']};
  // estado fora do portfólio
  if(e.uf&&!POS_UF.has(e.uf)&&!e.macro&&!e.micro&&!e.cidade){limpaLocal();return foraUF(e.uf);}
+ if(e.raca&&e.raca.length)return racaFlow(e);
  const attrK=e.attr||(e.cod?null:ctx.atributo);
+ {const jr=janelaFlow(e,janPend,janPrev);if(jr)return jr;}
  // MACRO
  if(e.macro){limpaLocal();const sc={t:'macro',mac:e.macro};ctx.scope=sc;
    if(!ALLROWS.some(scopeFilt(sc)))return semCultScope(sc,null);
@@ -569,7 +749,7 @@ function processCore(e){
        ctx.cod=e.cod;const fa=fineAsk(e.cod,ctx.muni,ctx.cond,e);if(fa)return fa;const det=renderDetail(e.cod,ctx.muni,ctx.cond,e.attr||null,e.fert);if(det)return det;}}
    if(wasList&&ctx.scope&&byCode[e.cod].posicionamento.some(scopeFilt(ctx.scope))){ctx.cod=e.cod;return scopeCultivar(e.cod,ctx.scope,e.attr||null,e.fert,e.manejo);}
    const hadLocal=prev.muni||prev.scope;ctx.cod=e.cod;ctx.atributo=e.attr||null;limpaLocal();
-   if(e.attr&&['cisto','sanidade','biotec','pmg'].indexOf(e.attr)>=0){const c=byCode[e.cod];return{bubbles:['<div class="t">'+c.nome+'</div><div class="k">'+attrLine(e.attr,{},c)+'</div>']};}
+   if(e.attr&&['cisto','galha','nematoides','sanidade','biotec','pmg'].indexOf(e.attr)>=0){const c=byCode[e.cod];return{bubbles:['<div class="t">'+c.nome+'</div><div class="k">'+attrLine(e.attr,{},c)+'</div>']};}
    if(hadLocal)return cultivarTodasRegioes(e.cod,prev.muni?prev:null);
    {const c=byCode[e.cod];const ufs=[...new Set(c.posicionamento.map(r=>r.uf))].sort();const macs=[...new Set(c.posicionamento.map(macOf))].sort().map(m=>m.slice(1));
     return {bubbles:['A <b>'+c.nome+'</b> (lançamento '+anoDe(c)+') está posicionada em: '+ufs.map(ufNome).join(', ')+' (Macro '+macs.join(', ')+').<br>Me diz a <b>cidade</b> pra eu te dar fertilidade, ciclo, janela e população — ou toque num estado.'],buttons:ufs.map(u=>({label:u,query:c.codigo+' '+u}))};}}
